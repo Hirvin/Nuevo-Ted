@@ -1,6 +1,7 @@
 # enlace para descargar subtitulos : http://www.amara.org/en/teams/ted/
 """ contiene todo el prototipo para obtener los subtitulos """
 import re
+NUM_WORD_BY_SUB = 15
 
 END_FRAME_STAMP = "** End frame **"
 SPLIT_TIME = r"(\d+):(\d+):(\d+)\,(\d+)"
@@ -148,6 +149,11 @@ class FrameSrt(object):
         if self.set_head(buffer_srt) is True:
             while buffer_srt.is_end_frame() is False:
                 self.set_word(buffer_srt.get_word())
+            # se comprueba que no se sobrepase el maximo numero de palabras
+            if len(self.words) > NUM_WORD_BY_SUB:
+                print "El Numero de palabras es mayor a %d total: %d" % \
+                    (NUM_WORD_BY_SUB, len(self.words))
+                return False
             return True
         return False
 
@@ -185,6 +191,9 @@ class Subtitle(object):
             frame = self.get_frame()
             if frame is not None:
                 self.buffer_frames.append(frame)
+            else:
+                return False
+        return True
 
     def print_frames(self):
         """ imprime todos los frames """
@@ -194,6 +203,6 @@ class Subtitle(object):
 # este es solo codigo de pruebas no se ejecuta al cargar el modulo
 if __name__ == '__main__':
     test = Subtitle()
-    test.open_srt("sub2.srt")
+    test.open_srt("sub.srt")
     test.get_frames()
     test.print_frames()
