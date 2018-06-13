@@ -1,16 +1,34 @@
 # contiene todo el layout de subtitulos
+# to do : agregar barra de progreso 
 
 import sys
+import PyQt5.QtGui as QtGui
+from PyQt5.QtCore import QDir, Qt, QUrl
 from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QStyle, QVBoxLayout, QWidget)
-from PyQt5.QtWidgets import QMainWindow,QWidget, QPushButton, QAction
+from PyQt5.QtWidgets import QMainWindow,QWidget, QPushButton, QAction, QSlider
 from Subtitle import Subtitle
+from GlobalConstant import NUM_WORD_BY_SUB
 
 # definicion de constantes
 [MAX_BUTTON_WIDTH, MAX_BUTTON_HIGH] = [80, 80]
-NUM_WORD_BY_SUB = 15
+# NUM_WORD_BY_SUB = 15
 
 # constantes del programa
 SRT_FILE = "sub.srt"
+
+
+class SubSlider(QSlider):
+    """ slider que muestra el avance de los suntitulos """
+    def __init__(self, parent=None):
+        super(SubSlider, self).__init__(Qt.Horizontal, parent)
+
+    def set_range(self, min, max):
+        """ establece el rango de operacion del slider """
+        self.setRange(min, max)
+
+    def set_value(self, value):
+        """ establece la posicion actual del slider """
+        self.setValue(value)
 
 class PrevButton(QPushButton):
     """ estructura del Prev Button """
@@ -29,6 +47,12 @@ class LbWord(QLabel):
     def __init__(self, parent=None):
         super(LbWord, self).__init__(parent)
         self.setText("")
+
+    def mousePressEvent(self, event):
+        """ ejecuta accion al presional el label """
+        word = self.text()
+        if word != "":
+            print word
 
 
 class SubLine(QHBoxLayout):
@@ -56,6 +80,19 @@ class SubLine(QHBoxLayout):
         """ actualiza el subtitulo con el valor de words """
         index = 0
         self.clean()
+
+        if words is None:
+            # print "se ha finalizado el buffer"
+            words = []
+
+        if len(words) > NUM_WORD_BY_SUB:
+            print "words es mayor que NUM_WORD_BY_SUB : %d" % (len(words))
+            print words
+            return False
+
+        offset = int((NUM_WORD_BY_SUB - len(words)) / 2)
+        index = offset
+        # print "el offset es : %d " % (offset)
 
         if len(words) > NUM_WORD_BY_SUB:
             print "Numero de palabras excede el limite"
@@ -107,17 +144,51 @@ class SubtitleLayout(QHBoxLayout):
         self.addLayout(self.v_sub_layout)
         self.addWidget(self.next_button)
 
+        # subitle slide initialization
+        self.sub_slider = SubSlider()
+
+        # inicializacion de los eventos
+        self.next_button.clicked.connect(self.next_clicked)
+        self.prev_button.clicked.connect(self.prev_clicked)
+
     def open_srt(self, srt_text):
         """ carga los subtitulos """
-        # hirvin por Trues
-        self.sub_buffer.open_srt(srt_text)
-        self.sub_buffer.get_frames()
+        if self.sub_buffer.open_srt(srt_text) is False:
+            print "No es posible abrir srt"
+            return False
+        if self.sub_buffer.get_frames() is False:
+            print "No es posible get_frames()"
+            return False
+        return True
 
     def init_sub_layout(self):
         """ carga las configuraciones iniciales del sub layout """
-        # hirvin poner si esta readi : is_ready()
-        self.v_sub_layout.set_sub_line1(self.sub_buffer.buffer_frames[0].words)
-        self.v_sub_layout.set_sub_line2(self.sub_buffer.buffer_frames[1].words)
+        if self.sub_buffer.is_ready() is True:
+            self.v_sub_layout.set_sub_line1(self.sub_buffer.get_next_word())
+            self.v_sub_layout.set_sub_line2(self.sub_buffer.get_next_word())
+            self.sub_slider.set_range(0, self.sub_buffer.num_frames)
+            self.sub_slider.set_value(2)
+            return True
+        return False
+
+    def init_box_layout(self, parent):
+        """ se anade asi mismo a la estrutura principal """
+        parent.addWidget(self.sub_slider)
+        parent.addLayout(self)
+
+    def next_clicked(self):
+        """ handler para cuando se presina next button """
+        if self.sub_buffer.is_next_ready() is True:
+            self.v_sub_layout.set_sub_line1(self.sub_buffer.get_next_word())
+            self.v_sub_layout.set_sub_line2(self.sub_buffer.get_next_word())
+            self.sub_slider.set_value(self.sub_buffer.index)
+
+    def prev_clicked(self):
+        """ handler prev button """
+        if self.sub_buffer.is_prev_ready() is True:
+            self.v_sub_layout.set_sub_line2(self.sub_buffer.get_prev_word())
+            self.v_sub_layout.set_sub_line1(self.sub_buffer.get_prev_word())
+            self.sub_slider.set_value(self.sub_buffer.index)
 
 
 class VideoWindow(QMainWindow):
@@ -138,7 +209,8 @@ class VideoWindow(QMainWindow):
 
         # anadiendo estrutura
         self.sub_lay = SubtitleLayout()
-        layout.addLayout(self.sub_lay)
+        #layout.addLayout(self.sub_lay)
+        self.sub_lay.init_box_layout(layout)
 
         # Set widget to contain window contents
         wid.setLayout(layout)
@@ -150,6 +222,14 @@ class VideoWindow(QMainWindow):
         """ inicializa todas las configuraciones iniciales """
         self.sub_lay.open_srt(SRT_FILE)
         self.sub_lay.init_sub_layout()
+
+    # esta funcion es necesaria incluirla en la ventan principal
+    def keyPressEvent(self, event):
+        """ key press event """
+        if type(event) == QtGui.QKeyEvent:
+            key = event.key()
+            if key >= ord("A") and key <= ord("Z"):
+                print chr(key)
 
     def exitCall(self):
         """ cierra la apliccaion """

@@ -1,7 +1,8 @@
 # enlace para descargar subtitulos : http://www.amara.org/en/teams/ted/
 """ contiene todo el prototipo para obtener los subtitulos """
 import re
-NUM_WORD_BY_SUB = 15
+from GlobalConstant import NUM_WORD_BY_SUB
+# NUM_WORD_BY_SUB = 15
 
 END_FRAME_STAMP = "** End frame **"
 SPLIT_TIME = r"(\d+):(\d+):(\d+)\,(\d+)"
@@ -58,6 +59,8 @@ class SubBuffer(object):
             self.buffer = self.buffer.replace("\n", " ").split(" ")
             self.buffer[0] = 1
             f_read.close()
+            return True
+        return False
 
     def set_end_frames(self):
         """ pone una marca en cada end frame """
@@ -67,8 +70,11 @@ class SubBuffer(object):
 
     def get_srt(self, txt_srt):
         """ obtiene la informacion y la trata del archivo srt """
-        self.open_srt(txt_srt)
-        self.set_end_frames()
+        if self.open_srt(txt_srt) is True:
+            self.set_end_frames()
+            return True
+        print "No es posible hacer open"
+        return False
 
     def print_buffer(self):
         """ imprime todo el contenido de buffer """
@@ -173,10 +179,13 @@ class Subtitle(object):
     def __init__(self):
         self.buffer_srt = SubBuffer()
         self.buffer_frames = []
+        self.num_frames = 0
+        self.ready = False
+        self.index = 0
 
     def open_srt(self, txt_srt):
         """ carga el archivo srt al buffer """
-        self.buffer_srt.get_srt(txt_srt)
+        return self.buffer_srt.get_srt(txt_srt)
 
     def get_frame(self):
         """ obtiene un frame del buffer """
@@ -193,12 +202,54 @@ class Subtitle(object):
                 self.buffer_frames.append(frame)
             else:
                 return False
+        self.ready = True
+        self.num_frames = len(self.buffer_frames)
         return True
+
+    def is_ready(self):
+        """ devuelve True si Subtitle esta listo """
+        return self.ready
+
+    def is_prev_ready(self):
+        """ devulve si el buffer esta activo ante un prev event """
+        if self.index > 2:
+            # print "index: %d True" % (self.index)
+            return True
+        # print "index: %d False" % (self.index)
+        return False
+
+    def is_next_ready(self):
+        """ verifica el evento next es valido """
+        if self.index < (self.num_frames - 2):
+            return True
+        return False
+
+    def get_next_word(self):
+        """ retorna el texto del siguiente frame """
+        if self.index < self.num_frames:
+            frame = self.buffer_frames[self.index]
+            # print str(self.index) + ": " + str(frame.words)
+            self.index += 1
+            return frame.words
+        return None
+
+    def get_prev_word(self):
+        """ retorna el texto del anterior frame """
+        if self.index > 2:
+            self.index -= 1
+            frame = self.buffer_frames[self.index - 2]
+            # print str(self.index) + ": " + str(frame.words)
+            return frame.words
+        return None
 
     def print_frames(self):
         """ imprime todos los frames """
         for i_element in self.buffer_frames:
             print i_element
+
+# 0 hola 1   2 mama 3
+# 1 casa 2   3 papa 4
+
 
 # este es solo codigo de pruebas no se ejecuta al cargar el modulo
 if __name__ == '__main__':
