@@ -54,6 +54,11 @@ class LbWord(QLabel):
         if word != "":
             print word
 
+    def clean(self):
+        """ limpia la estrucutra de LbWord """
+        self.setText(" ")
+        self.update()
+
 
 class SubLine(QHBoxLayout):
     """ Contiene una linea de palbras de subtitulo """
@@ -106,7 +111,8 @@ class SubLine(QHBoxLayout):
     def clean(self):
         """ limpia todas las palabras """
         for i_word in self.words:
-            i_word.setText("")
+            i_word.clean()
+            # i_word.setText("")
 
 
 class SubVBox(QVBoxLayout):
@@ -161,8 +167,9 @@ class SubtitleLayout(QHBoxLayout):
             return False
         return True
 
-    def init_sub_layout(self):
+    def init_sub_layout(self, srt_text):
         """ carga las configuraciones iniciales del sub layout """
+        self.open_srt(srt_text)
         if self.sub_buffer.is_ready() is True:
             self.v_sub_layout.set_sub_line1(self.sub_buffer.get_next_word())
             self.v_sub_layout.set_sub_line2(self.sub_buffer.get_next_word())
@@ -189,6 +196,14 @@ class SubtitleLayout(QHBoxLayout):
             self.v_sub_layout.set_sub_line2(self.sub_buffer.get_prev_word())
             self.v_sub_layout.set_sub_line1(self.sub_buffer.get_prev_word())
             self.sub_slider.set_value(self.sub_buffer.index)
+
+    def get_init_time(self):
+        """ odteniendo el init time """
+        return self.sub_buffer.get_init_time()
+
+    def get_next_frame_time(self):
+        """ retorna los valores del tiempo del siguiente frame """
+        return self.sub_buffer.next_frame_time()
 
 
 class VideoWindow(QMainWindow):
@@ -220,8 +235,8 @@ class VideoWindow(QMainWindow):
 
     def init_configuration(self):
         """ inicializa todas las configuraciones iniciales """
-        self.sub_lay.open_srt(SRT_FILE)
-        self.sub_lay.init_sub_layout()
+        # self.sub_lay.open_srt(SRT_FILE)
+        self.sub_lay.init_sub_layout(SRT_FILE)
 
     # esta funcion es necesaria incluirla en la ventan principal
     def keyPressEvent(self, event):

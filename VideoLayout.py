@@ -8,10 +8,15 @@ from PyQt5.QtWidgets import QMainWindow,QWidget, QPushButton, QAction
 from PyQt5.QtGui import QIcon
 import sys
 import time
+from GlobalConstant import TIMER_VIDEO
 
 PATH_VIDEO = "/home/hirvin/Documentos/Hirvin/Proyectos/Ted_Test/NuevoTed/" \
 "video.mp4"
 
+# TIMER_VIDEO = 500
+
+PLAYER_STOP = 0
+PLAYER_RUN = 1
 
 
 class VideoPlayer(QVBoxLayout):
@@ -22,7 +27,14 @@ class VideoPlayer(QVBoxLayout):
         self.video_widget = QVideoWidget()
         self.media_player = QMediaPlayer(None, QMediaPlayer.VideoSurface)
         self.media_player.setVideoOutput(self.video_widget)
+        # label que indica el tiempo
+        self.l_time = QLabel("Hola mundo")
+        self.addWidget(self.l_time)
         self.addWidget(self.video_widget)
+        self.player_status = PLAYER_STOP
+        self.init_time = None
+        self.end_time = None
+        self.offset = 0
         # hirvin poner video error handler
 
     def set_video_path(self, video_path):
@@ -30,11 +42,37 @@ class VideoPlayer(QVBoxLayout):
         media_content = QMediaContent(QUrl.fromLocalFile(video_path))
         self.media_player.setMedia(media_content)
 
-    def play(self):
+    def get_position(self):
+        """ retorna la posicion actual del frame """
+        return self.end_time
+
+    def print_position(self):
+        """ imprime la posicion de init y end """
+        print "init: %d end: %d" % (self.init_time, self.end_time)
+
+    def play(self, init_time=None, end_time=None):
         """ play video """
         if(self.media_player.state() == QMediaPlayer.StoppedState) or \
                 (self.media_player.state() == QMediaPlayer.PausedState):
-            self.media_player.play()
+            if init_time is not None:
+                if init_time >= 0 and init_time < end_time:
+                    self.init_time = init_time + self.offset
+                    self.media_player.setPosition(self.init_time)
+                else:
+                    print "invalid init_time"
+                    return False
+            if end_time is not None:
+                if init_time is None:
+                    self.init_time = self.end_time
+                self.end_time = end_time + self.offset
+                self.player_status = PLAYER_RUN
+                # ejecuta el timer en un derterminado intervalo
+                self.timer.start(TIMER_VIDEO)
+                self.media_player.play()
+                return True
+            else:
+                print "End time no valido"
+                return False
 
     def stop(self):
         """ stop video """
@@ -46,38 +84,34 @@ class VideoPlayer(QVBoxLayout):
         if self.media_player.state() == QMediaPlayer.PlayingState:
             self.media_player.pause()
 
-    def init_configuration(self, video_path):
+    def init_configuration(self, video_path, end_time_init, offset=0):
         """ init configuration of video """
+        self.offset = offset
         self.set_video_path(video_path)
-        # self.media_player.positionChanged.connect(self.duration_scheduler)
+        self.media_player.positionChanged.connect(self.duration_scheduler)
         # timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.timeout)  # timeout signal
-        self.timer.start(5000)  # updates every second
-        self.play()
+        self.play(init_time=None, end_time=end_time_init)
 
     def timeout(self):
-        print "hola timer "
         if self.media_player.state() == QMediaPlayer.PlayingState:
-            self.media_player.pause()
-
+            if self.player_status == PLAYER_STOP:
+                self.media_player.pause()
+                self.timer.stop()
 
     def init_box_layout(self, parent):
         """ inicializa el layout para video player """
         parent.addLayout(self)
 
     def duration_scheduler(self, position):
-        """ se llama cada vez que el video cambia de posicion """
+        """ se llama cada vez que el video cambia de position """
         if self.media_player.state() == QMediaPlayer.PlayingState:
-            if position > 5000:
+            self.l_time.setText(str(position))
+            if position >= self.end_time:
+                print "se tiene que denter la reporducion"
                 print position
-                # chage this for pause()
-                # hirvin
-                self.media_player.stop()
-                # self.media_player.pause()
-                # self.video_control.prev_button.enable()
-                # self.video_control.next_button.enable_first_frame()
-
+                self.player_status = PLAYER_STOP
 
 class VideoWindow(QMainWindow):
     """Ventana Principal del Programa"""
@@ -96,15 +130,14 @@ class VideoWindow(QMainWindow):
         layout.addWidget(self.info_label)
 
         # anadir subtitle layout
-        # anadir video layout
         self.video_player = VideoPlayer()
         self.video_player.init_box_layout(layout)
 
         # este es solo contenido de pruebas no copiar
-        self.pause_button = QPushButton("pause")
-        self.play_button = QPushButton("play")
-        self.play_button.clicked.connect(self.video_player.play)
-        self.pause_button.clicked.connect(self.video_player.pause)
+        self.pause_button = QPushButton("Prev")
+        self.play_button = QPushButton("Next")
+        self.play_button.clicked.connect(self.next_clicked)
+        self.pause_button.clicked.connect(self.prev_clicked)
         layout.addWidget(self.play_button)
         layout.addWidget(self.pause_button)
 
@@ -113,6 +146,18 @@ class VideoWindow(QMainWindow):
 
         # inicializacion
         self.init_configuration()
+
+    def next_clicked(self):
+        """ reprodce video y ande 10 segundos al frame """
+        pos = self.video_player.get_position()
+        self.video_player.play(init_time=None, end_time=pos+20000)
+        self.video_player.print_position()
+
+    def prev_clicked(self):
+        """ reproduce el video y atrasa 20 segundos """
+        pos = self.video_player.get_position() - 20000
+        self.video_player.play(init_time=pos-20000, end_time=pos)
+        self.video_player.print_position()
 
     def init_configuration(self):
         """ inicializa todas las configuraciones iniciales """
