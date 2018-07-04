@@ -6,7 +6,7 @@ import PyQt5.QtGui as QtGui
 from PyQt5.QtCore import QDir, Qt, QUrl
 from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QStyle, QVBoxLayout, QWidget)
 from PyQt5.QtWidgets import QMainWindow,QWidget, QPushButton, QAction, QSlider
-from Subtitle import Subtitle
+from Subtitle import Subtitle2
 from GlobalConstant import NUM_WORD_BY_SUB
 
 # definicion de constantes
@@ -14,7 +14,7 @@ from GlobalConstant import NUM_WORD_BY_SUB
 # NUM_WORD_BY_SUB = 15
 
 # constantes del programa
-SRT_FILE = "sub.srt"
+SRT_FILE = "sub.srt_ted"
 
 
 class SubSlider(QSlider):
@@ -141,7 +141,7 @@ class SubtitleLayout(QHBoxLayout):
     def __init__(self, parent=None):
         # estructura del widget de subtitulos
         super(SubtitleLayout, self).__init__(parent)
-        self.sub_buffer = Subtitle()
+        self.sub_buffer = Subtitle2()
         self.prev_button = PrevButton()
         self.next_button = NextButton()
         self.v_sub_layout = SubVBox()
@@ -171,8 +171,9 @@ class SubtitleLayout(QHBoxLayout):
         """ carga las configuraciones iniciales del sub layout """
         self.open_srt(srt_text)
         if self.sub_buffer.is_ready() is True:
-            self.v_sub_layout.set_sub_line1(self.sub_buffer.get_next_word())
-            self.v_sub_layout.set_sub_line2(self.sub_buffer.get_next_word())
+            l1_word, l2_word = self.sub_buffer.get_next_word()
+            self.v_sub_layout.set_sub_line1(l1_word)
+            self.v_sub_layout.set_sub_line2(l2_word)
             self.sub_slider.set_range(0, self.sub_buffer.num_frames)
             self.sub_slider.set_value(2)
             return True
@@ -186,16 +187,18 @@ class SubtitleLayout(QHBoxLayout):
     def next_clicked(self):
         """ handler para cuando se presina next button """
         if self.sub_buffer.is_next_ready() is True:
-            self.v_sub_layout.set_sub_line1(self.sub_buffer.get_next_word())
-            self.v_sub_layout.set_sub_line2(self.sub_buffer.get_next_word())
-            self.sub_slider.set_value(self.sub_buffer.index)
+            l1_word, l2_word = self.sub_buffer.get_next_word()
+            self.v_sub_layout.set_sub_line1(l1_word)
+            self.v_sub_layout.set_sub_line2(l2_word)
+            self.sub_slider.set_value(self.sub_buffer.index_txt)
 
     def prev_clicked(self):
         """ handler prev button """
         if self.sub_buffer.is_prev_ready() is True:
-            self.v_sub_layout.set_sub_line2(self.sub_buffer.get_prev_word())
-            self.v_sub_layout.set_sub_line1(self.sub_buffer.get_prev_word())
-            self.sub_slider.set_value(self.sub_buffer.index)
+            l1_word, l2_word = self.sub_buffer.get_prev_word()
+            self.v_sub_layout.set_sub_line2(l2_word)
+            self.v_sub_layout.set_sub_line1(l1_word)
+            self.sub_slider.set_value(self.sub_buffer.index_txt)
 
     def get_init_time(self):
         """ odteniendo el init time """
@@ -204,6 +207,10 @@ class SubtitleLayout(QHBoxLayout):
     def get_next_frame_time(self):
         """ retorna los valores del tiempo del siguiente frame """
         return self.sub_buffer.next_frame_time()
+
+    def get_prev_frame_time(self):
+        """ retorna los valores del tiempo del frame anterior """
+        return self.sub_buffer.prev_frame_time()
 
 
 class VideoWindow(QMainWindow):

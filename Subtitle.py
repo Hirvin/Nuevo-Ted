@@ -366,6 +366,18 @@ class FrameSrt2(object):
                 return False
         return True
 
+    def get_words_txt(self):
+        """ devuelve las dos lineas """
+        return self.l1_word, self.l2_word
+
+    def get_init_time_milis(self):
+        """ retorona el valor en miles del init time """
+        return self.init_time.get_time_milis()
+
+    def get_end_time_miles(self):
+        """ retorna el valor en miles del end time """
+        return self.end_time.get_time_milis()
+
     def __str__(self):
         """ imprime el frame """
         number_txt = "number = " + str(self.number)
@@ -374,8 +386,7 @@ class FrameSrt2(object):
         words_txt = str(self.l1_word) + "\n" + str(self.l2_word)
         next_txt = " ******************* \n"
         return number_txt + '\n' + init_txt + '\n' + end_txt + '\n' \
-                + words_txt + '\n' + next_txt
-        #return ""
+            + words_txt + '\n' + next_txt
 
 
 class FrameSrt(object):
@@ -451,6 +462,8 @@ class Subtitle2(object):
         self.buffer_frames = []
         self.num_frames = 0
         self.ready = False
+        self.index_txt = 0
+        self.index_time = 0
 
     def open_srt(self, txt_srt):
         """ carga el archivo srt al buffer """
@@ -474,6 +487,76 @@ class Subtitle2(object):
         self.ready = True
         self.num_frames = len(self.buffer_frames)
         return True
+
+    def is_ready(self):
+        """ devuelve True si Subtitle esta listo """
+        return self.ready
+
+    def get_next_word(self):
+        """ retorna el texto del siguiente frame """
+        if self.index_txt < self.num_frames:
+            frame = self.buffer_frames[self.index_txt]
+            # print str(self.index) + ": " + str(frame.words)
+            self.index_txt += 1
+            return frame.get_words_txt()
+        return None, None
+
+    def next_frame_time(self):
+        """ retorna el next frame time """
+        if self.index_time < self.num_frames:
+            init_time = self.buffer_frames[self.index_time].get_init_time_milis()
+            end_time = self.buffer_frames[self.index_time].get_end_time_miles()
+            self.index_time += 1
+            return init_time, end_time
+        return None, None
+
+    def prev_frame_time(self):
+        """ retorna el frame anterior """
+        if self.index_time > 1:
+            self.index_time -= 2
+            init_time = self.buffer_frames[self.index_time].get_init_time_milis()
+            end_time = self.buffer_frames[self.index_time].get_end_time_miles()
+            return init_time, end_time
+
+        self.index_time = 0
+        init_time = self.buffer_frames[self.index_time].get_init_time_milis()
+        end_time = self.buffer_frames[self.index_time].get_end_time_miles()
+        self.index_time += 1
+        return init_time, end_time
+
+    def is_next_ready(self):
+        """ verifica el evento next es valido """
+        if self.index_txt < self.num_frames:
+            return True
+        return False
+
+    def is_prev_ready(self):
+        """ devuelve si el buffer esta activo ante un prev event """
+        if self.index_txt >= 0:
+            return True
+        return False
+
+    def get_prev_word(self):
+        """ retorna el texto del anterior frame """
+        if self.index_txt > 1:
+            self.index_txt -= 2
+            frame = self.buffer_frames[self.index_txt]
+            return frame.get_words_txt()
+        self.index_txt = 0
+        frame = self.buffer_frames[self.index_txt]
+        self.index_txt += 1
+        return frame.get_words_txt()
+
+    def get_init_time(self):
+        """ obtiene el init time y el end time """
+        if self.num_frames < 1:
+            print "No es posible iniciar los tiempos inicales"
+            return None, None
+        # devuelve los valores iniciales
+        init_time = self.buffer_frames[0].get_init_time_milis()
+        end_time = self.buffer_frames[0].get_end_time_miles()
+        self.index_time = 1
+        return init_time, end_time
 
     def print_frames(self):
         """ imprime todos los frames """

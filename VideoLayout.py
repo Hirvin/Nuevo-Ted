@@ -109,8 +109,6 @@ class VideoPlayer(QVBoxLayout):
         if self.media_player.state() == QMediaPlayer.PlayingState:
             self.l_time.setText(str(position))
             if position >= self.end_time:
-                print "se tiene que denter la reporducion"
-                print position
                 self.player_status = PLAYER_STOP
 
 class VideoWindow(QMainWindow):

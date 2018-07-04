@@ -11,7 +11,7 @@ from VideoLayout import VideoPlayer
 # constantes del programa
 PATH_VIDEO = "/home/hirvin/Documentos/Hirvin/Proyectos/Ted_Test/NuevoTed/" \
 "video.mp4"
-SRT_FILE = "sub.srt"
+SRT_FILE = "sub.srt_ted"
 
 
 class MainWindow(QMainWindow):
@@ -46,6 +46,7 @@ class MainWindow(QMainWindow):
 
         # conectando senales
         self.sub_lay.next_button.clicked.connect(self.next_clicked)
+        self.sub_lay.prev_button.clicked.connect(self.prev_clicked)
 
     def init_configuration(self):
         """ inicializa todas las configuraciones iniciales """
@@ -53,18 +54,17 @@ class MainWindow(QMainWindow):
         self.sub_lay.init_sub_layout(SRT_FILE)
         # inicializacion de video latoyut
         init_time, end_time = self.sub_lay.get_init_time()
-        print "obteniendo los valores"
-        print init_time
-        print end_time
         self.video_player.init_configuration(PATH_VIDEO, end_time, offset=11500)
 
     def next_clicked(self):
         """ reproduce el siguiente frame """
         init_time, end_time = self.sub_lay.get_next_frame_time()
-        print "imprime next time"
-        print init_time
-        print end_time
         self.video_player.play(init_time=None, end_time=end_time)
+
+    def prev_clicked(self):
+        """ reproduce el frame anterior """
+        init_time, end_time = self.sub_lay.get_prev_frame_time()
+        self.video_player.play(init_time=init_time, end_time=end_time)
 
     def exitCall(self):
         """ cierra la apliccaion """
