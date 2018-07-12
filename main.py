@@ -10,7 +10,7 @@ from VideoLayout import VideoPlayer
 
 # constantes del programa
 PATH_VIDEO = "/home/hirvin/Documentos/Hirvin/Proyectos/Ted_Test/NuevoTed/" \
-"video.mp4"
+    "video.mp4"
 SRT_FILE = "sub.srt_ted"
 
 
@@ -25,6 +25,10 @@ class MainWindow(QMainWindow):
                                 " para pruebas")
         wid = QWidget(self)
         self.setCentralWidget(wid)
+
+        # variables del sistema
+        self.init_time = 0
+        self.end_time = 0
 
         # Create layouts to place inside widget
         layout = QVBoxLayout()
@@ -53,13 +57,14 @@ class MainWindow(QMainWindow):
         # inicializacion de subtitle layout
         self.sub_lay.init_sub_layout(SRT_FILE)
         # inicializacion de video latoyut
-        init_time, end_time = self.sub_lay.get_init_time()
-        self.video_player.init_configuration(PATH_VIDEO, end_time, offset=11500)
+        self.init_time, self.end_time = self.sub_lay.get_init_time()
+        self.video_player.init_configuration(PATH_VIDEO, self.end_time,
+                                             offset=11500)
 
     def next_clicked(self):
         """ reproduce el siguiente frame """
-        init_time, end_time = self.sub_lay.get_next_frame_time()
-        self.video_player.play(init_time=None, end_time=end_time)
+        self.init_time, self.end_time = self.sub_lay.get_next_frame_time()
+        self.video_player.play(init_time=None, end_time=self.end_time)
 
     def prev_clicked(self):
         """ reproduce el frame anterior """
@@ -69,6 +74,13 @@ class MainWindow(QMainWindow):
     def exitCall(self):
         """ cierra la apliccaion """
         sys.exit(app.exec_())
+
+    def keyPressEvent(self, event):
+        """ key press event """
+        if type(event) == QtGui.QKeyEvent:
+            key = event.key()
+            if self.sub_lay.is_character(key):
+                self.sub_lay.is_word_complete(key)
 
 
 if __name__ == '__main__':

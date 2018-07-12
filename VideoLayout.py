@@ -11,7 +11,7 @@ import time
 from GlobalConstant import TIMER_VIDEO
 
 PATH_VIDEO = "/home/hirvin/Documentos/Hirvin/Proyectos/Ted_Test/NuevoTed/" \
-"video.mp4"
+             "video.mp4"
 
 # TIMER_VIDEO = 500
 
@@ -95,6 +95,7 @@ class VideoPlayer(QVBoxLayout):
         self.play(init_time=None, end_time=end_time_init)
 
     def timeout(self):
+        """ timeout """
         if self.media_player.state() == QMediaPlayer.PlayingState:
             if self.player_status == PLAYER_STOP:
                 self.media_player.pause()
@@ -110,6 +111,7 @@ class VideoPlayer(QVBoxLayout):
             self.l_time.setText(str(position))
             if position >= self.end_time:
                 self.player_status = PLAYER_STOP
+
 
 class VideoWindow(QMainWindow):
     """Ventana Principal del Programa"""
@@ -148,13 +150,13 @@ class VideoWindow(QMainWindow):
     def next_clicked(self):
         """ reprodce video y ande 10 segundos al frame """
         pos = self.video_player.get_position()
-        self.video_player.play(init_time=None, end_time=pos+20000)
+        self.video_player.play(init_time=None, end_time=pos + 20000)
         self.video_player.print_position()
 
     def prev_clicked(self):
         """ reproduce el video y atrasa 20 segundos """
         pos = self.video_player.get_position() - 20000
-        self.video_player.play(init_time=pos-20000, end_time=pos)
+        self.video_player.play(init_time=pos - 20000, end_time=pos)
         self.video_player.print_position()
 
     def init_configuration(self):
