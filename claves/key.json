@@ -1,12 +1,3 @@
 {
-  "type": "service_account",
-  "project_id": "learn-english-project",
-  "private_key_id": "f04e0be83c7782798258fc3b34590e0532a5c946",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDkAHn6x0KOi/7b\nxuw9f9fU+E2gIV7d1oliKlpffYKO3le/rGV5LOdGIPNsDdPpqT0++AHR+LXf0VB1\nNYM7Dy3HMF8Ugu3L3jNAY6CASdaDz7TS1Fic3XeY/ccklzBogaJtRSZaaIGfw2pI\nM1BTYwN2T2C63ayho3k9Pws680sN+yVyStyoDmBSPhJZW5In8StiRoSp8jaVtVlW\nuVZznP6niqZDMMM9A7aF685WoUuRTqiqkqJrFBmFPXKNZanCTJY9dMnz34Gc1KIm\nrCXKn7IhPZXqpml5dNhrSObn0MEJUM/czsHmhzJEMLTKWvuoTc+irr/WDzTmVIZ7\nu76liRjzAgMBAAECggEAaXTg9oHAgp80/6Fn9mARy7MXcGfO8at/utRdHYq3Xu5v\nRrvt6VjAFfs6q/FPYWWCawQaD2zKbp3paXUZYDE6msWATMPsSh3Ztb/+5ieA3VGu\nUM+fttpmrXA/8mgtn0DKiGDyBuIMhoFDwOZfElqbKNc5JeVPKioq8w2cW6VZQzrV\njRpkKmQami0YWL5xutfsfR8s1GFaQTZr1gmmzhB51rRD4VQXhwCmfgiO2PoAfvg8\nYdvks7caWu7YcZvlaJinomUV2ra8bqsLIVSCb4HRH4DXLdy6PMjgOpSOv+6yBETK\nsggAqgwKmAlXUETjO8rTZWQCaxfEjLT2K/miXdZ/RQKBgQDzeC6kPlPY+xdphY7w\nKzartcK6jZT+qPkV/lwvRzxAQbo/9FBZ6p5BtHC+tu4E4fvWREnJY8rQyBKmYdGF\ncZDflR6SyIQ0GDMFtEsF5zIRKKB/7fgRvVJdmD1/k4g04CljckHECJ2QZ0tn+iTu\nX6BTrm5/Oa5Df1oUE6QBeScKDwKBgQDvvIB260C60ALKtiQY7M7F8oVvzu1VSv4a\nSdRbPLehY/5C7xXYr5F5POWWbJYFiIpcHO8spjeJHhwaiP1tATCptMiL9DunD5MX\nTXJXqD2zRQCRBHBaWUBQGpmD4PzfjxqR6S/wZFCImRE9AcRONuu5k/zCOI+3ZlUH\nVSfYeSX23QKBgAqi0m7MZj9RYMl0UzU8vgusShB6ROsHGLKURRSvqPspo+hNVQFI\nlZdLOa2rMiS2dpj6rLqGiIKsatwn485PksOhsQ86gUQBVqFGKgzc97v2KWTNUYv8\n2E9Maktbd5TPwh8dC7Bzq+Z2DL5DGD/tn4RoV11peKpsMtQzs3N5BnKTAoGBAMVe\neJju91yVkibXq4JFu7ol/wtc3fHhiq+T5tuyci/RxevPMDoz2N1qcE3WWfB2SAqr\n25Dzyzb87gA+lf3fA/RDnPP0AAR7AwslPKTEIv/rKBs7/0+yuQr5yzdSzH01MJe9\n1jTgMZk0A4gpYzdNaeZf2rD/pfpEqm4eAm7q1oGVAoGBAIDxpVq0MIbqPgCZpbLG\nthldsfIYTCp520i8BOFZDMdtQiNeV+9dWsS6TrCFQ99VRG4/TC6cI0X9quFadWOw\nmTkHcq3Cvj7u7CyqwmYr5ba1cojOZajwk/yBK5cCZSqMsJLmUJR28Nugofuzuhum\noxLZ7y+WNDdejha0rP93lB6L\n-----END PRIVATE KEY-----\n",
-  "client_email": "te-dict@learn-english-project.iam.gserviceaccount.com",
-  "client_id": "112307729116189364077",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://accounts.google.com/o/oauth2/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/te-dict%40learn-english-project.iam.gserviceaccount.com"
+
 }
