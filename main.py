@@ -1,4 +1,6 @@
 # este contiene la unio de todas las retructuras
+# git push -u origin master // para subir 
+
 
 import sys
 import PyQt5.QtGui as QtGui
@@ -13,6 +15,8 @@ PATH_VIDEO = "/home/hirvin/Documentos/Hirvin/Proyectos/Ted_Test/NuevoTed/" \
     "video.mp4"
 SRT_FILE = "sub.srt_ted"
 
+ENABLE_BUTTON = 0
+REAPEAT_BUTTON = 2
 
 class MainWindow(QMainWindow):
     """Ventana Principal del Programa"""
@@ -60,16 +64,23 @@ class MainWindow(QMainWindow):
         self.init_time, self.end_time = self.sub_lay.get_init_time()
         self.video_player.init_configuration(PATH_VIDEO, self.end_time,
                                              offset=11500)
+        self.sub_lay.repeat_next_button()
 
     def next_clicked(self):
         """ reproduce el siguiente frame """
-        self.init_time, self.end_time = self.sub_lay.get_next_frame_time()
-        self.video_player.play(init_time=None, end_time=self.end_time)
+        print "es state es:"
+        print self.sub_lay.get_state_next_button()
+        if self.sub_lay.get_state_next_button() == REAPEAT_BUTTON:
+            self.video_player.play(init_time=self.init_time, end_time=self.end_time)
+        else:
+            self.init_time, self.end_time = self.sub_lay.get_next_frame_time()
+            self.video_player.play(init_time=None, end_time=self.end_time)
+            self.sub_lay.next_clicked()
 
     def prev_clicked(self):
         """ reproduce el frame anterior """
-        init_time, end_time = self.sub_lay.get_prev_frame_time()
-        self.video_player.play(init_time=init_time, end_time=end_time)
+        self.init_time, self.end_time = self.sub_lay.get_prev_frame_time()
+        self.video_player.play(init_time=self.init_time, end_time=self.end_time)
 
     def exitCall(self):
         """ cierra la apliccaion """
@@ -80,7 +91,8 @@ class MainWindow(QMainWindow):
         if type(event) == QtGui.QKeyEvent:
             key = event.key()
             if self.sub_lay.is_character(key):
-                self.sub_lay.is_word_complete(key)
+                if self.sub_lay.is_word_complete(key) is True:
+                    self.sub_lay.enable_next_button()
 
 
 if __name__ == '__main__':

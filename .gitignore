@@ -1,3 +1,5 @@
 *.srt
 *.pyc
 *.mp4
+*.sbv
+*.xml

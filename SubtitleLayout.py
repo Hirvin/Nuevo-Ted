@@ -34,6 +34,10 @@ ACTIVE_WORD_COLOR = "slategrey"
 CORRECT_WORD_COLOR = "royalblue"
 WARNING_COLOR = "tan"
 
+ENABLE_BUTTON = 0
+DISABLE_BUTTON = 1
+REAPEAT_BUTTON = 2
+
 
 class SubSlider(QSlider):
     """ slider que muestra el avance de los suntitulos """
@@ -61,6 +65,29 @@ class NextButton(QPushButton):
     def __init__(self, parent=None):
         super(NextButton, self).__init__("Next", parent)
         self.setMaximumSize(MAX_BUTTON_WIDTH, MAX_BUTTON_HIGH)
+        # self.setEnabled(False)
+        self.state = ENABLE_BUTTON
+
+    def enable_button(self):
+        """ habilita el boton """
+        self.setEnabled(True)
+        self.setText("Next")
+        self.state = ENABLE_BUTTON
+
+    def disable_button(self):
+        """ desabilita el boton """
+        self.setEnabled(False)
+        self.state = DISABLE_BUTTON
+
+    def repeat_button(self):
+        """ repetir button """
+        self.setEnabled(True)
+        self.setText("Repeat")
+        self.state = REAPEAT_BUTTON
+
+    def get_state(self):
+        """ retorna el valor de state """
+        return self.state
 
 
 class LbWord(QLabel):
@@ -120,6 +147,12 @@ class LbWord(QLabel):
             text = self.lst_to_str(self.word_point)
             self.setText(self.set_color(ACTIVE_WORD_COLOR, text))
             self.index_word += 1
+            # acompleta la palabra antes de finalizar el frame
+            if self.find_letter() is False:
+                self.is_complete = True
+                word = self.lst_to_str(self.word_point)
+                self.setText(self.set_color(CORRECT_WORD_COLOR, word))
+                return True
         else:
             self.cnt_word += 1
 
@@ -149,6 +182,7 @@ class LbWord(QLabel):
             word = self.lst_to_str(self.word)
             self.setText(self.set_color(ERROR_COLOR, word))
             self.is_complete = True
+            return True
         return False
 
     def init_text(self, word):
@@ -270,7 +304,7 @@ class SubVBox(QVBoxLayout):
 
 class SubtitleLayout(QHBoxLayout):
     """ layout con toda la estructura para subtitulos """
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, debug=False):
         # estructura del widget de subtitulos
         super(SubtitleLayout, self).__init__(parent)
         self.debug_mode = False
@@ -289,8 +323,25 @@ class SubtitleLayout(QHBoxLayout):
         self.sub_slider = SubSlider()
 
         # inicializacion de los eventos
-        self.next_button.clicked.connect(self.next_clicked)
+        if debug is True:
+            self.next_button.clicked.connect(self.next_clicked)
         self.prev_button.clicked.connect(self.prev_clicked)
+
+    def disable_next_button(self):
+        """ deshabilita el next button """
+        self.next_button.disable_button()
+
+    def enable_next_button(self):
+        """ habilita el button """
+        self.next_button.enable_button()
+
+    def repeat_next_button(self):
+        """ repite el button """
+        self.next_button.repeat_button()
+
+    def get_state_next_button(self):
+        """ retorna el valor de state """
+        return self.next_button.get_state()
 
     def open_srt(self, srt_text):
         """ carga los subtitulos """
@@ -322,12 +373,14 @@ class SubtitleLayout(QHBoxLayout):
 
     def next_clicked(self):
         """ handler para cuando se presina next button """
-        if self.sub_buffer.is_next_ready() is True:
-            l1_word, l2_word = self.sub_buffer.get_next_word()
-            self.v_sub_layout.set_sub_line1(l1_word, self.debug_mode)
-            self.v_sub_layout.set_sub_line2(l2_word, self.debug_mode)
-            self.sub_slider.set_value(self.sub_buffer.index_txt)
-            self.is_complete = False
+        if self.get_state_next_button() == ENABLE_BUTTON:
+            if self.sub_buffer.is_next_ready() is True:
+                l1_word, l2_word = self.sub_buffer.get_next_word()
+                self.v_sub_layout.set_sub_line1(l1_word, self.debug_mode)
+                self.v_sub_layout.set_sub_line2(l2_word, self.debug_mode)
+                self.sub_slider.set_value(self.sub_buffer.index_txt)
+                self.is_complete = False
+                self.repeat_next_button()
 
     def prev_clicked(self):
         """ handler prev button """
@@ -365,7 +418,7 @@ class SubtitleLayout(QHBoxLayout):
     def is_word_complete(self, key):
         """ acompleta las palabara de cada juego """
         self.is_complete = self.v_sub_layout.is_word_complete(key)
-
+        return self.is_complete
 
 
 class VideoWindow(QMainWindow):
@@ -385,7 +438,7 @@ class VideoWindow(QMainWindow):
         layout.addWidget(self.info_label)
 
         # anadiendo estrutura
-        self.sub_lay = SubtitleLayout()
+        self.sub_lay = SubtitleLayout(debug=True)
         self.sub_lay.init_box_layout(layout)
 
         # Set widget to contain window contents
@@ -398,6 +451,7 @@ class VideoWindow(QMainWindow):
         """ inicializa todas las configuraciones iniciales """
         # self.sub_lay.open_srt(SRT_FILE)
         self.sub_lay.init_sub_layout(SRT_FILE, debug_mode=True)
+        self.sub_lay.repeat_next_button()
 
     # esta funcion es necesaria incluirla en la ventan principal
     def keyPressEvent(self, event):
@@ -405,7 +459,8 @@ class VideoWindow(QMainWindow):
         if type(event) == QtGui.QKeyEvent:
             key = event.key()
             if self.sub_lay.is_character(key):
-                self.sub_lay.is_word_complete(key)
+                if self.sub_lay.is_word_complete(key) is True:
+                    self.sub_lay.enable_next_button()
 
     def exitCall(self):
         """ cierra la apliccaion """
