@@ -9,9 +9,11 @@ from PyQt5.QtGui import QIcon
 import sys
 import time
 from GlobalConstant import TIMER_VIDEO
+from XmlHandler import HandlerXml
 
 PATH_VIDEO = "/home/hirvin/Documentos/Hirvin/Proyectos/Ted_Test/NuevoTed/" \
              "video.mp4"
+SRT_FILE = "test.xml"
 
 # TIMER_VIDEO = 500
 
@@ -35,6 +37,8 @@ class VideoPlayer(QVBoxLayout):
         self.init_time = None
         self.end_time = None
         self.offset = 0
+        self.frame_buffer = None
+        self.timer = None
         # hirvin poner video error handler
 
     def set_video_path(self, video_path):
@@ -84,7 +88,7 @@ class VideoPlayer(QVBoxLayout):
         if self.media_player.state() == QMediaPlayer.PlayingState:
             self.media_player.pause()
 
-    def init_configuration(self, video_path, end_time_init, offset=0):
+    def init_configuration(self, video_path=None, frame_buffer=None, end_time_init=None, offset=0):
         """ init configuration of video """
         self.offset = offset
         self.set_video_path(video_path)
@@ -92,7 +96,10 @@ class VideoPlayer(QVBoxLayout):
         # timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.timeout)  # timeout signal
-        self.play(init_time=None, end_time=end_time_init)
+        if frame_buffer is not None:
+            self.frame_buffer = frame_buffer
+            end_time = int(self.frame_buffer.get_end_time())
+            self.play(init_time=None, end_time=end_time)
 
     def timeout(self):
         """ timeout """
@@ -111,6 +118,20 @@ class VideoPlayer(QVBoxLayout):
             self.l_time.setText(str(position))
             if position >= self.end_time:
                 self.player_status = PLAYER_STOP
+
+    def next_clicked(self):
+        """ next clicked action """
+        # init_time = int(self.frame_buffer.get_init_time())
+        end_time = int(self.frame_buffer.get_end_time())
+        self.play(init_time=None, end_time=end_time)
+        # self.print_position()
+
+    def prev_clicked(self):
+        """ prev clicked action """
+        init_time = int(self.frame_buffer.get_init_time())
+        end_time = int(self.frame_buffer.get_end_time())
+        self.play(init_time=init_time, end_time=end_time)
+        # self.print_position()
 
 
 class VideoWindow(QMainWindow):
@@ -133,6 +154,10 @@ class VideoWindow(QMainWindow):
         self.video_player = VideoPlayer()
         self.video_player.init_box_layout(layout)
 
+        # adicional elements
+        self.frame_buffer = HandlerXml(SRT_FILE)
+
+
         # este es solo contenido de pruebas no copiar
         self.pause_button = QPushButton("Prev")
         self.play_button = QPushButton("Next")
@@ -149,21 +174,19 @@ class VideoWindow(QMainWindow):
 
     def next_clicked(self):
         """ reprodce video y ande 10 segundos al frame """
-        pos = self.video_player.get_position()
-        self.video_player.play(init_time=None, end_time=pos + 20000)
-        self.video_player.print_position()
+        self.frame_buffer.next_frame()
+        self.video_player.next_clicked()
 
     def prev_clicked(self):
         """ reproduce el video y atrasa 20 segundos """
-        pos = self.video_player.get_position() - 20000
-        self.video_player.play(init_time=pos - 20000, end_time=pos)
-        self.video_player.print_position()
+        self.frame_buffer.prev_frame()
+        self.video_player.prev_clicked()
 
     def init_configuration(self):
         """ inicializa todas las configuraciones iniciales """
         # inicializacion de subtitle layout
         # inicializacion de video latoyut
-        self.video_player.init_configuration(PATH_VIDEO)
+        self.video_player.init_configuration(video_path=PATH_VIDEO, frame_buffer=self.frame_buffer, offset=11600)
 
     def exitCall(self):
         """ cierra la apliccaion """

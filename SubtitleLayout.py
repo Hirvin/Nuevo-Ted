@@ -10,6 +10,7 @@ from Subtitle import Subtitle2
 from GlobalConstant import NUM_WORD_BY_SUB
 import re
 from PyDictionary import PyDictionary
+from XmlHandler import HandlerXml
 
 # see QColor(0, 200, 0)
 
@@ -18,25 +19,22 @@ from PyDictionary import PyDictionary
 # NUM_WORD_BY_SUB = 15
 
 # constantes del programa
-# silver para activado
-# tan malo intermedio
-# steelblue or slateblue correcto
-# slategrey or slategray en proceso
-# init darkslategray
-SRT_FILE = "sub.srt_ted"
+SRT_FILE = "test.xml"
 REPLACE_WORD_TO_ASTERISC = r"[a-zA-Z0-9]"
 REPLACE_WORD_TO_DICTIONARY = r"[/,/./-/_]"
+POINTER_WORD = '*'
 
-POINTER_WORD = "*"
-ERROR_COLOR = "sienna"
-INIT_WORD_COLOR = "darkslategrey"
-ACTIVE_WORD_COLOR = "slategrey"
-CORRECT_WORD_COLOR = "royalblue"
-WARNING_COLOR = "tan"
+
 
 ENABLE_BUTTON = 0
 DISABLE_BUTTON = 1
 REAPEAT_BUTTON = 2
+
+# CSS labels colors
+CSS_BASE_COLOR = "QLabel{color: SlateGrey; font-size: 25px; font-weight: bold;} QLabel:hover{background: rgba(70,130,180,0.25); color: SlateGrey; font-size: 25px; font-weight: bold;}"
+CSS_CORRECT_COLOR = "QLabel{color: SteelBlue; font-size: 25px; font-weight: bold;} QLabel:hover{background: rgba(70,130,180,0.25); color: SteelBlue; font-size: 25px; font-weight: bold;}"
+CSS_WARNING_COLOR = "QLabel{color: LightSteelBlue; font-size: 25px; font-weight: bold;} QLabel:hover{background: rgba(70,130,180,0.25); color: LightSteelBlue; font-size: 25px; font-weight: bold;}"
+CSS_ERROR_COLOR = "QLabel{color: IndianRed; font-size: 25px; font-weight: bold;} QLabel:hover{background: rgba(70,130,180,0.25); color: IndianRed; font-size: 25px; font-weight: bold;}"
 
 
 class SubSlider(QSlider):
@@ -95,130 +93,129 @@ class LbWord(QLabel):
     def __init__(self, parent=None):
         super(LbWord, self).__init__(parent)
         self.setText("")
-        self.is_complete = True
-        self.word = []
-        self.index_word = 0
-        self.word_point = []
+        self.is_complete = False
+        # self.word = []
+        self.index_chr = 0
+        # self.word_point = []
+        self.word = ""
+        # palabra que se muestra
+        self.dsp_word = ""
         self.cnt_word = 0
         self.dictionary = PyDictionary()
+        self.index_curr_word = 0
+        self.key_out = False
+        self.word_xml = None
 
     def mousePressEvent(self, event):
         """ ejecuta accion al presional el label """
-        word = self.lst_to_str(self.word)
-        if word != "" and self.is_complete:
-            word = re.sub(REPLACE_WORD_TO_DICTIONARY, "", word)
+        if self.word != "" and self.is_complete:
+            word = re.sub(REPLACE_WORD_TO_DICTIONARY, "", self.word)
             text = str(self.dictionary.meaning(word))
-            print (text)
+            print text
 
     def replace_word(self, word):
         """ remplaza las letras y numero por *"""
         return re.sub(REPLACE_WORD_TO_ASTERISC, POINTER_WORD, word)
 
-    def set_color(self, color, txt):
-        """ retorna el color planteado """
-        return "<font color='%s'>%s</font>" % (color, txt)
-
     def find_letter(self):
         """ encuentra la primera letra disponible """
-        for letter in self.word_point[self.index_word:]:
+        for letter in self.dsp_word[self.index_chr:]:
             if letter == POINTER_WORD:
                 return True
-            self.index_word += 1
+            self.index_chr += 1
         return False
-
-    def lst_to_str(self, x_list):
-        """ convierte una lista a string """
-        return ''.join(map(str, x_list))
 
     def complete_word(self, key):
         """ acompleta las palabras """
-        # verifica que no alla mas palabras
+        if key is None:
+            return False
+
         if self.find_letter() is False:
             self.is_complete = True
-            word = self.lst_to_str(self.word_point)
-            self.setText(self.set_color(CORRECT_WORD_COLOR, word))
-            return True
 
-        chr_w = self.word[self.index_word].upper()
-        if chr_w == chr(key):
-            # print self.word_point
-            # print self.word
-            self.word_point[self.index_word] = self.word[self.index_word]
-            text = self.lst_to_str(self.word_point)
-            self.setText(self.set_color(ACTIVE_WORD_COLOR, text))
-            self.index_word += 1
-            # acompleta la palabra antes de finalizar el frame
-            if self.find_letter() is False:
+        if self.is_complete is False:
+            key_w = chr(key)
+            if key_w == self.word[self.index_chr].upper():
+                self.index_chr += 1
+                self.dsp_word = self.word[:self.index_chr] + self.replace_word(self.word[self.index_chr:])
+            else:
+                self.cnt_word += 1
+                self.word_xml.attrib["cnt_word"] = str(self.cnt_word)
+
+            if (self.dsp_word == self.word) or (self.cnt_word >= 4):
+                self.dsp_word = self.word
                 self.is_complete = True
-                word = self.lst_to_str(self.word_point)
-                self.setText(self.set_color(CORRECT_WORD_COLOR, word))
-                return True
-        else:
-            self.cnt_word += 1
+                self.key_out = True
+                self.word_xml.attrib["is_completed"] = 'True'
 
-        # evalua los errores de cada palabra
-        if self.evaluate_errors() is True:
-            return True
+            # print "%s (%s) : cnt = %d" % (self.word, key_w, self.cnt_word)
+            self.evaluate_errors()
+            self.setText(self.dsp_word)
 
-        if self.index_word >= len(self.word):
-            self.is_complete = True
-            word = self.lst_to_str(self.word_point)
-            self.setText(self.set_color(CORRECT_WORD_COLOR, word))
-            return True
-
-        return False
+        return self.is_complete
 
     def evaluate_errors(self):
         """ evalua lo errore en cada palabra """
-        if self.cnt_word < 2:
-            word = self.lst_to_str(self.word_point)
-            self.setText(self.set_color(ACTIVE_WORD_COLOR, word))
-        if self.cnt_word == 2:
-            # print "esta palabra tiene errores"
-            word = self.lst_to_str(self.word_point)
-            self.setText(self.set_color(WARNING_COLOR, word))
-        if self.cnt_word == 4:
-            # self.setText(self.lst_to_str(self.word))
-            word = self.lst_to_str(self.word)
-            self.setText(self.set_color(ERROR_COLOR, word))
-            self.is_complete = True
-            return True
-        return False
+        if (self.index_chr == 0) and (self.cnt_word == 0):
+            self.setStyleSheet(CSS_BASE_COLOR)
+        elif (self.cnt_word < 2):
+            self.setStyleSheet(CSS_CORRECT_COLOR)
+        elif self.cnt_word < 4:
+            self.setStyleSheet(CSS_WARNING_COLOR)
+        elif self.cnt_word >= 4:
+            self.setStyleSheet(CSS_ERROR_COLOR)
+
 
     def init_text(self, word):
         """ inicializa la palabra en el label """
-        self.word_point = list(self.replace_word(word))
-        text = self.lst_to_str(self.word_point)
-        self.setText(self.set_color(INIT_WORD_COLOR, text))
-        self.is_complete = False
-        self.word = list(word)
+        self.word_xml = word
+        self.word = word[0].text
+        self.setStyleSheet(CSS_BASE_COLOR)
+
+        if word.attrib["is_completed"] == 'True':
+            self.is_complete = True
+            self.dsp_word = self.word
+        else:
+            self.is_complete = False
+            self.dsp_word = self.replace_word(self.word)
+
+        self.cnt_word = int(word.attrib["cnt_word"])
+        self.index_curr_word = int(word.attrib["index"])
+        self.evaluate_errors()
+        self.setText(self.dsp_word)
 
     def is_word_complete(self, key):
         """ determina si la palabra es completa """
         if self.is_complete is True:
             return True
-        # print chr(key)
         return self.complete_word(key)
-        # return False
 
     def clean(self):
         """ limpia la estrucutra de LbWord """
         self.setText(" ")
         self.update()
-        self.is_complete = True
-        self.word = []
-        self.word_point = []
-        self.index_word = 0
+        self.is_complete = False
+        self.index_chr = 0
+        self.word = ""
+        # palabra que se muestra
+        self.dsp_word = ""
         self.cnt_word = 0
+        self.index_curr_word = 0
+        self.key_out = False
+        self.word_xml = None
+        self.setStyleSheet(CSS_BASE_COLOR)
 
 
 class SubLine(QHBoxLayout):
     """ Contiene una linea de palbras de subtitulo """
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, line_number=0):
         super(SubLine, self).__init__(parent)
         self.words = []
         self.create_words()
         self.set_layout()
+        self.line_number = line_number
+        self.is_complete = False
+        self.key_out = False
         # self.clean()
 
     def create_words(self):
@@ -233,47 +230,48 @@ class SubLine(QHBoxLayout):
             self.addWidget(self.words[i_word])
         self.addStretch()
 
-    def set_words(self, words, debug_mode=False):
+    def set_words(self, frame, debug_mode=False):
         """ actualiza el subtitulo con el valor de words """
-        index = 0
         self.clean()
 
-        if words is None:
-            # print "se ha finalizado el buffer"
-            words = []
-
-        if len(words) > NUM_WORD_BY_SUB:
-            print "words es mayor que NUM_WORD_BY_SUB : %d" % (len(words))
-            print words
-            return False
-
-        offset = int((NUM_WORD_BY_SUB - len(words)) / 2)
-        index = offset
-
-        if len(words) > NUM_WORD_BY_SUB:
-            print "Numero de palabras excede el limite"
-            return False
-
-        # imprime las palabras para el debug mode
-        if debug_mode is True:
-            print words
-
-        for i_word in words:
+        index = 0
+        line_words = frame.get_line(line_number=self.line_number)
+        for i_word in line_words:
             self.words[index].init_text(i_word)
             index += 1
+
+            if debug_mode:
+                if i_word[0].text != " ":
+                    print i_word[0].text
+        if debug_mode:
+            print "#################################"
         return True
 
     def clean(self):
         """ limpia todas las palabras """
+        self.is_complete = False
+        self.key_out = False
         for i_word in self.words:
             i_word.clean()
 
     def is_word_complete(self, key):
         """ is word complete """
-        # return self.words[0].is_word_complete(key)
+        if self.is_complete:
+            return True
+
+        if key is None:
+            return False
+
         for word in self.words:
             if word.is_word_complete(key) is False:
                 return False
+            else:
+                if word.key_out is True:
+                    key = None
+                    word.key_out = False
+
+        self.is_complete = True
+        self.key_out = True
         return True
 
 
@@ -281,23 +279,26 @@ class SubVBox(QVBoxLayout):
     """ box que contienen todos los labels para los subtitles """
     def __init__(self, parent=None):
         super(SubVBox, self).__init__(parent)
-        self.sub_line1 = SubLine()
-        self.sub_line2 = SubLine()
+        self.sub_line1 = SubLine(line_number=0)
+        self.sub_line2 = SubLine(line_number=1)
 
         self.addLayout(self.sub_line1)
         self.addLayout(self.sub_line2)
 
-    def set_sub_line1(self, words, debug_mode=False):
+    def set_sub_line1(self, frame, debug_mode=False):
         """ setea las palabras en la linea 1 """
-        self.sub_line1.set_words(words, debug_mode)
+        self.sub_line1.set_words(frame, debug_mode)
 
-    def set_sub_line2(self, words, debug_mode=False):
+    def set_sub_line2(self, frame, debug_mode=False):
         """ setea las palabras en la linea 2 """
-        self.sub_line2.set_words(words, debug_mode)
+        self.sub_line2.set_words(frame, debug_mode)
 
     def is_word_complete(self, key):
         """ is word complete"""
         if self.sub_line1.is_word_complete(key) is True:
+            if self.sub_line1.key_out:
+                key = None
+                self.sub_line1.key_out = False
             return self.sub_line2.is_word_complete(key)
         return False
 
@@ -308,7 +309,12 @@ class SubtitleLayout(QHBoxLayout):
         # estructura del widget de subtitulos
         super(SubtitleLayout, self).__init__(parent)
         self.debug_mode = False
-        self.sub_buffer = Subtitle2()
+
+        # hirvin mejor afuera
+        self.frame_buffer = None
+
+        # self.sub_buffer = Subtitle2()
+
         self.prev_button = PrevButton()
         self.next_button = NextButton()
         self.v_sub_layout = SubVBox()
@@ -322,10 +328,10 @@ class SubtitleLayout(QHBoxLayout):
         # subitle slide initialization
         self.sub_slider = SubSlider()
 
-        # inicializacion de los eventos
-        if debug is True:
-            self.next_button.clicked.connect(self.next_clicked)
-        self.prev_button.clicked.connect(self.prev_clicked)
+        # # inicializacion de los eventos
+        # if debug is True:
+        #     self.next_button.clicked.connect(self.next_clicked)
+        # self.prev_button.clicked.connect(self.prev_clicked)
 
     def disable_next_button(self):
         """ deshabilita el next button """
@@ -343,28 +349,19 @@ class SubtitleLayout(QHBoxLayout):
         """ retorna el valor de state """
         return self.next_button.get_state()
 
-    def open_srt(self, srt_text):
-        """ carga los subtitulos """
-        if self.sub_buffer.open_srt(srt_text) is False:
-            print "No es posible abrir srt"
-            return False
-        if self.sub_buffer.get_frames() is False:
-            print "No es posible get_frames()"
-            return False
-        return True
-
-    def init_sub_layout(self, srt_text, debug_mode=False):
+    def init_sub_layout(self, frame_buffer, debug_mode=False):
         """ carga las configuraciones iniciales del sub layout """
-        self.open_srt(srt_text)
-        if self.sub_buffer.is_ready() is True:
-            self.debug_mode = debug_mode
-            l1_word, l2_word = self.sub_buffer.get_next_word()
-            self.v_sub_layout.set_sub_line1(l1_word, self.debug_mode)
-            self.v_sub_layout.set_sub_line2(l2_word, self.debug_mode)
-            self.sub_slider.set_range(0, self.sub_buffer.num_frames)
-            self.sub_slider.set_value(2)
-            return True
-        return False
+        self.debug_mode = debug_mode
+
+        # mejor afuera
+        self.frame_buffer = frame_buffer
+
+        # hirvin cambiar por nueva implementacion
+        self.v_sub_layout.set_sub_line1(self.frame_buffer, self.debug_mode)
+        self.v_sub_layout.set_sub_line2(self.frame_buffer, self.debug_mode)
+        self.sub_slider.set_range(0, 100 ) # cambiar esta por el numero maximo de frame ###########################
+
+        self.sub_slider.set_value(2)
 
     def init_box_layout(self, parent):
         """ se anade asi mismo a la estrutura principal """
@@ -373,35 +370,32 @@ class SubtitleLayout(QHBoxLayout):
 
     def next_clicked(self):
         """ handler para cuando se presina next button """
-        if self.get_state_next_button() == ENABLE_BUTTON:
-            if self.sub_buffer.is_next_ready() is True:
-                l1_word, l2_word = self.sub_buffer.get_next_word()
-                self.v_sub_layout.set_sub_line1(l1_word, self.debug_mode)
-                self.v_sub_layout.set_sub_line2(l2_word, self.debug_mode)
-                self.sub_slider.set_value(self.sub_buffer.index_txt)
-                self.is_complete = False
-                self.repeat_next_button()
+        # if self.get_state_next_button() == ENABLE_BUTTON:
+        #     if self.sub_buffer.is_next_ready() is True:
+        #         l1_word, l2_word = self.sub_buffer.get_next_word()
+        #         self.v_sub_layout.set_sub_line1(l1_word, self.debug_mode)
+        #         self.v_sub_layout.set_sub_line2(l2_word, self.debug_mode)
+        #         self.sub_slider.set_value(self.sub_buffer.index_txt)
+        #         self.is_complete = False
+        #         self.repeat_next_button()
+        # hirvin mejor afuera
+        
+
+        self.v_sub_layout.set_sub_line1(self.frame_buffer, self.debug_mode)
+        self.v_sub_layout.set_sub_line2(self.frame_buffer, self.debug_mode)
+
 
     def prev_clicked(self):
         """ handler prev button """
-        if self.sub_buffer.is_prev_ready() is True:
-            l1_word, l2_word = self.sub_buffer.get_prev_word()
-            self.v_sub_layout.set_sub_line2(l2_word, self.debug_mode)
-            self.v_sub_layout.set_sub_line1(l1_word, self.debug_mode)
-            self.sub_slider.set_value(self.sub_buffer.index_txt)
-            self.is_complete = False
+        # hirvin cambiar prev clicked 
+        # self.v_sub_layout.set_sub_line2(l2_word, self.debug_mode)
+        # self.v_sub_layout.set_sub_line1(l1_word, self.debug_mode)
+        # self.sub_slider.set_value(self.sub_buffer.index_txt)
+        # hirvin mejor afuera
+        
 
-    def get_init_time(self):
-        """ odteniendo el init time """
-        return self.sub_buffer.get_init_time()
-
-    def get_next_frame_time(self):
-        """ retorna los valores del tiempo del siguiente frame """
-        return self.sub_buffer.next_frame_time()
-
-    def get_prev_frame_time(self):
-        """ retorna los valores del tiempo del frame anterior """
-        return self.sub_buffer.prev_frame_time()
+        self.v_sub_layout.set_sub_line1(self.frame_buffer, self.debug_mode)
+        self.v_sub_layout.set_sub_line2(self.frame_buffer, self.debug_mode)
 
     def is_letter(self, key):
         """ retorna True si es una letra """
@@ -419,6 +413,10 @@ class SubtitleLayout(QHBoxLayout):
         """ acompleta las palabara de cada juego """
         self.is_complete = self.v_sub_layout.is_word_complete(key)
         return self.is_complete
+
+    def exit(self):
+        """ exit """
+        pass
 
 
 class VideoWindow(QMainWindow):
@@ -444,14 +442,21 @@ class VideoWindow(QMainWindow):
         # Set widget to contain window contents
         wid.setLayout(layout)
 
+        # adicional elements
+        self.frame_buffer = HandlerXml(SRT_FILE)
+
         # inicializacion
         self.init_configuration()
+
+        # add signals
+        self.sub_lay.next_button.clicked.connect(self.next_global_clicked)
+        self.sub_lay.prev_button.clicked.connect(self.prev_global_clicked)
 
     def init_configuration(self):
         """ inicializa todas las configuraciones iniciales """
         # self.sub_lay.open_srt(SRT_FILE)
-        self.sub_lay.init_sub_layout(SRT_FILE, debug_mode=True)
-        self.sub_lay.repeat_next_button()
+        self.sub_lay.init_sub_layout(self.frame_buffer, debug_mode=True)
+        # self.sub_lay.repeat_next_button() # cambiar esta Hirvin
 
     # esta funcion es necesaria incluirla en la ventan principal
     def keyPressEvent(self, event):
@@ -465,6 +470,17 @@ class VideoWindow(QMainWindow):
     def exitCall(self):
         """ cierra la apliccaion """
         sys.exit(app.exec_())
+
+    def next_global_clicked(self):
+        """ next global clicked """
+        self.frame_buffer.save()
+        self.frame_buffer.next_frame()
+        self.sub_lay.next_clicked()
+
+    def prev_global_clicked(self):
+        """ prev global clicked """
+        self.frame_buffer.prev_frame()
+        self.sub_lay.prev_clicked()
 
 
 if __name__ == '__main__':

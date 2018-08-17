@@ -212,13 +212,13 @@ class FrameXml(object):
             frame_end_time.text = str(end_time.get_time_milis())
             frame_end_time_utf.text = str(end_time)
 
-        text_line1 = ET.SubElement(frame, "text_line1")
-        text_line2 = ET.SubElement(frame, "text_line2")
+        # text_line1 = ET.SubElement(frame, "text_line1")
+        # text_line2 = ET.SubElement(frame, "text_line2")
 
         if l1_data is not None:
-            self.create_text_line(text_line1, "text_line1", data=l1_data)
+            self.create_text_line(frame, "text_line0", data=l1_data)
         if l2_data is not None:
-            self.create_text_line(text_line2, "text_line2", data=l2_data)
+            self.create_text_line(frame, "text_line1", data=l2_data)
 
         return frame
 
@@ -232,11 +232,16 @@ class FrameXml(object):
         """ create all words """
         lst_words = []
         text = " "
+        lim_inf = int(NUM_WORD_BY_SUB - len(data)) / 2
+        index_data = 0
         for index in range(NUM_WORD_BY_SUB):
+            complete = "True"
             word = self.init_word(parent)
-            if index < len(data):
-                text = data[index]
-            self.set_word(word, index, text)
+            if (index >= lim_inf) and (index < lim_inf + len(data)):
+                text = data[index_data]
+                index_data += 1
+                complete = "False"
+            self.set_word(word, index, text, complete=complete)
             text = " "
             lst_words.append(word)
 
@@ -250,10 +255,11 @@ class FrameXml(object):
         txt_word.text = "hola"
         return word
 
-    def set_word(self, element=None, index='0', word=" "):
+    def set_word(self, element=None, index='0', word=" ", complete=""):
         """ set word """
         if element is not None:
             element.attrib['index'] = str(index)
+            element.attrib['is_completed'] = complete
             element[FRAME_TXT_WORD_INDEX].text = word
 
     def create(self):
@@ -266,40 +272,60 @@ class FrameXml(object):
         tree.write("test.xml", xml_declaration=True, encoding='utf-8')
 
 
-
-
 class HandlerXml(object):
     """ hand all xml files """
-    def __init__(self):
-        tree = ET.parse("test.xml")
-        self.root = tree.getroot()
+    def __init__(self, path=None):
+        self.path = path
+        self.tree = ET.parse(path)
+        self.root = self.tree.getroot()
         self.head_index = 0
         self.frame_index = 1
         self.frame_len = len(self.root) - 1
+        # current frame
+        self.frame = self.root[self.frame_index]
+
+    def save(self):
+        """ save progress """
+        self.tree.write(self.path, xml_declaration=True, encoding='utf-8')
 
     def next_frame(self):
         """ return the next frame """
         if self.frame_index < self.frame_len:
             self.frame_index += 1
+            self.frame = self.root[self.frame_index]
         return self.root[self.frame_index]
 
     def prev_frame(self):
         """ return prev frame """
         if self.frame_index > 1:
             self.frame_index -= 1
+            self.frame = self.root[self.frame_index]
         return self.root[self.frame_index]
 
     def get_frame(self):
         """ return actal frame """
         return self.root[self.frame_index]
 
+    def get_line(self, line_number=0):
+        """ return line 1"""
+        line_name = "text_line" + str(line_number)
+        return self.frame.find(line_name)
+
+    def get_init_time(self):
+        """ return init time """
+        return self.frame.find("init_time").text
+
+    def get_end_time(self):
+        """ return end time """
+        return self.frame.find("end_time").text
 
 
 def sbv_to_xml(sbv_file=None, out_file=None):
+    """ sbv to xml """
     svb = SbvToXml()
-    svb.open_sbv("test.sbv")
+    svb.open_sbv(sbv_file)
     svb.get_frames()
-    svb.close("test.xml")
+    svb.close(out_file)
 
 
 # CREAR EL ARCHIVO XML A PARTIR DE UN SBV

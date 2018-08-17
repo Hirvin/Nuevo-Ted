@@ -18,6 +18,7 @@ SRT_FILE = "sub.srt_ted"
 ENABLE_BUTTON = 0
 REAPEAT_BUTTON = 2
 
+
 class MainWindow(QMainWindow):
     """Ventana Principal del Programa"""
     def __init__(self, parent=None):
