@@ -52,7 +52,17 @@ class VideoPlayer(QVBoxLayout):
 
     def print_position(self):
         """ imprime la posicion de init y end """
-        print "init: %d end: %d" % (self.init_time, self.end_time)
+        if self.init_time is None:
+            init_time = 0
+        else:
+            init_time = self.init_time
+
+        if self.end_time is None:
+            end_time = 0
+        else:
+            end_time = self.end_time
+
+        print "init: %d end: %d" % (init_time, end_time)
 
     def play(self, init_time=None, end_time=None):
         """ play video """
@@ -88,7 +98,7 @@ class VideoPlayer(QVBoxLayout):
         if self.media_player.state() == QMediaPlayer.PlayingState:
             self.media_player.pause()
 
-    def init_configuration(self, video_path=None, frame_buffer=None, end_time_init=None, offset=0):
+    def init_configuration(self, video_path=None, frame_buffer=None, offset=0):
         """ init configuration of video """
         self.offset = offset
         self.set_video_path(video_path)
@@ -99,7 +109,8 @@ class VideoPlayer(QVBoxLayout):
         if frame_buffer is not None:
             self.frame_buffer = frame_buffer
             end_time = int(self.frame_buffer.get_end_time())
-            self.play(init_time=None, end_time=end_time)
+            init_time = int(self.frame_buffer.get_init_time())
+            self.play(init_time=init_time, end_time=end_time)
 
     def timeout(self):
         """ timeout """
@@ -132,6 +143,17 @@ class VideoPlayer(QVBoxLayout):
         end_time = int(self.frame_buffer.get_end_time())
         self.play(init_time=init_time, end_time=end_time)
         # self.print_position()
+
+    def repeat(self, init_time=None, end_time=None):
+        """ repeat frame """
+        self.init_time = int(self.frame_buffer.get_init_time()) + self.offset
+        self.end_time = int(self.frame_buffer.get_end_time()) + self.offset
+        if(self.media_player.state() == QMediaPlayer.StoppedState) or \
+                (self.media_player.state() == QMediaPlayer.PausedState):
+            self.media_player.setPosition(self.init_time)
+            self.player_status = PLAYER_RUN
+            self.timer.start(TIMER_VIDEO)
+            self.media_player.play()
 
 
 class VideoWindow(QMainWindow):

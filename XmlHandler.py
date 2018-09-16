@@ -199,6 +199,8 @@ class FrameXml(object):
         """ create Frame """
         frame = ET.SubElement(parent, "Frame")
         frame.set('number', str(frame_number))
+        frame.set('text_is_complete', 'false')
+        frame.set('speech_is_complete', 'false')
 
         frame_init_time = ET.SubElement(frame, "init_time")
         frame_init_time_utf = ET.SubElement(frame, "init_time_utf")
@@ -236,6 +238,7 @@ class FrameXml(object):
         index_data = 0
         for index in range(NUM_WORD_BY_SUB):
             complete = "True"
+            text = "None"
             word = self.init_word(parent)
             if (index >= lim_inf) and (index < lim_inf + len(data)):
                 text = data[index_data]
@@ -318,6 +321,27 @@ class HandlerXml(object):
     def get_end_time(self):
         """ return end time """
         return self.frame.find("end_time").text
+
+    def set_is_text_complete_frame(self, value="false"):
+        """ set is text complete field """
+        self.frame.attrib["text_is_complete"] = value
+
+    def get_is_text_complete_frame(self):
+        """ set is text complete field """
+        if self.frame.attrib["text_is_complete"] == "true":
+            return True
+        return False
+
+    def set_is_speech_complete_frame(self, value="false"):
+        """ set is speech complete field """
+        self.frame.attrib["speech_is_complete"] = value
+
+    def get_is_speech_complete_frame(self):
+        """ set is speech complete field """
+        if self.frame.attrib["speech_is_complete"] == "true":
+            return True
+        return False
+
 
 
 def sbv_to_xml(sbv_file=None, out_file=None):

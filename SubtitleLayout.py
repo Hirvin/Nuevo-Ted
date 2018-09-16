@@ -29,12 +29,18 @@ POINTER_WORD = '*'
 ENABLE_BUTTON = 0
 DISABLE_BUTTON = 1
 REAPEAT_BUTTON = 2
+SAY_BUTTON = 3
+PREV_BUTTON = 4
 
 # CSS labels colors
+CSS_BASE_COLOR_NO_HOVER = "QLabel{color: SlateGrey; font-size: 25px; font-weight: bold;}"
 CSS_BASE_COLOR = "QLabel{color: SlateGrey; font-size: 25px; font-weight: bold;} QLabel:hover{background: rgba(70,130,180,0.25); color: SlateGrey; font-size: 25px; font-weight: bold;}"
 CSS_CORRECT_COLOR = "QLabel{color: SteelBlue; font-size: 25px; font-weight: bold;} QLabel:hover{background: rgba(70,130,180,0.25); color: SteelBlue; font-size: 25px; font-weight: bold;}"
 CSS_WARNING_COLOR = "QLabel{color: LightSteelBlue; font-size: 25px; font-weight: bold;} QLabel:hover{background: rgba(70,130,180,0.25); color: LightSteelBlue; font-size: 25px; font-weight: bold;}"
 CSS_ERROR_COLOR = "QLabel{color: IndianRed; font-size: 25px; font-weight: bold;} QLabel:hover{background: rgba(70,130,180,0.25); color: IndianRed; font-size: 25px; font-weight: bold;}"
+# say mode
+CSS_BASE_SAY_COLOR = "QLabel{color: Green; font-size: 25px; font-weight: bold;}"
+CSS_CORRECT_SAY_COLOR = "QLabel{color: Blue; font-size: 25px; font-weight: bold;}"
 
 
 class SubSlider(QSlider):
@@ -56,6 +62,31 @@ class PrevButton(QPushButton):
     def __init__(self, parent=None):
         super(PrevButton, self).__init__("Prev", parent)
         self.setMaximumSize(MAX_BUTTON_WIDTH, MAX_BUTTON_HIGH)
+        self.state = PREV_BUTTON
+
+    def enable_prev_button(self):
+        """ enable prev button """
+        print "enable prev button 3"
+        self.setEnabled(True)
+        self.setText("Prev")
+        self.update()
+        self.state = PREV_BUTTON
+
+    def say_something(self):
+        """ say something display """
+        self.setEnabled(True)
+        self.setText("Saying")
+        self.update()
+
+    def say_button(self):
+        """ say button """
+        self.setEnabled(True)
+        self.setText("Say")
+        self.state = SAY_BUTTON
+
+    def get_state(self):
+        """ retorna el valor de state """
+        return self.state
 
 
 class NextButton(QPushButton):
@@ -83,9 +114,22 @@ class NextButton(QPushButton):
         self.setText("Repeat")
         self.state = REAPEAT_BUTTON
 
+    def say_button(self):
+        """ say button """
+        self.setEnabled(True)
+        self.setText("Say")
+        self.state = SAY_BUTTON
+
     def get_state(self):
         """ retorna el valor de state """
         return self.state
+
+
+class LbWord2(QLabel):
+    """ estructura de una palabra """
+    def __init__(self, parent=None):
+        super(LbWord2, self).__init__(parent)
+        self.setText("Hola")
 
 
 class LbWord(QLabel):
@@ -105,6 +149,13 @@ class LbWord(QLabel):
         self.index_curr_word = 0
         self.key_out = False
         self.word_xml = None
+        self.is_none = False
+
+    def get_word(self):
+        """ return word if is not space """
+        if self.word != " ":
+            return self.word + " "
+        return ""
 
     def mousePressEvent(self, event):
         """ ejecuta accion al presional el label """
@@ -156,21 +207,30 @@ class LbWord(QLabel):
 
     def evaluate_errors(self):
         """ evalua lo errore en cada palabra """
-        if (self.index_chr == 0) and (self.cnt_word == 0):
-            self.setStyleSheet(CSS_BASE_COLOR)
-        elif (self.cnt_word < 2):
-            self.setStyleSheet(CSS_CORRECT_COLOR)
-        elif self.cnt_word < 4:
-            self.setStyleSheet(CSS_WARNING_COLOR)
-        elif self.cnt_word >= 4:
-            self.setStyleSheet(CSS_ERROR_COLOR)
+        if self.is_none is False:
+            if (self.index_chr == 0) and (self.cnt_word == 0):
+                self.setStyleSheet(CSS_BASE_COLOR)
+            elif self.cnt_word < 2:
+                self.setStyleSheet(CSS_CORRECT_COLOR)
+            elif self.cnt_word < 4:
+                self.setStyleSheet(CSS_WARNING_COLOR)
+            elif self.cnt_word >= 4:
+                self.setStyleSheet(CSS_ERROR_COLOR)
 
+    def init_say_mode(self):
+        self.setStyleSheet(CSS_BASE_SAY_COLOR)
 
     def init_text(self, word):
         """ inicializa la palabra en el label """
         self.word_xml = word
         self.word = word[0].text
-        self.setStyleSheet(CSS_BASE_COLOR)
+        if self.word == "None":
+            self.setStyleSheet(CSS_BASE_COLOR_NO_HOVER)
+            self.word = " "
+            self.word_xml = " "
+            self.is_none = True
+        else:
+            self.setStyleSheet(CSS_BASE_COLOR)
 
         if word.attrib["is_completed"] == 'True':
             self.is_complete = True
@@ -203,7 +263,8 @@ class LbWord(QLabel):
         self.index_curr_word = 0
         self.key_out = False
         self.word_xml = None
-        self.setStyleSheet(CSS_BASE_COLOR)
+        self.setStyleSheet(CSS_BASE_COLOR_NO_HOVER)
+        self.is_none = False
 
 
 class SubLine(QHBoxLayout):
@@ -221,7 +282,7 @@ class SubLine(QHBoxLayout):
     def create_words(self):
         """ crea las palabras de una linea """
         for i_word in range(NUM_WORD_BY_SUB):
-            self.words.append(LbWord())
+            self.words.append(LbWord2())
 
     def set_layout(self):
         """ setea todas las palabras en el layout """
@@ -285,6 +346,8 @@ class SubVBox(QVBoxLayout):
         self.addLayout(self.sub_line1)
         self.addLayout(self.sub_line2)
 
+        self.lst_words = []
+
     def set_sub_line1(self, frame, debug_mode=False):
         """ setea las palabras en la linea 1 """
         self.sub_line1.set_words(frame, debug_mode)
@@ -301,6 +364,83 @@ class SubVBox(QVBoxLayout):
                 self.sub_line1.key_out = False
             return self.sub_line2.is_word_complete(key)
         return False
+
+    def print_lst_word(self):
+        """ print lst words """
+        txt = "["
+        for lb_word in self.lst_words:
+            txt += lb_word.word + " ,"
+        txt += "]"
+        print txt
+
+    def get_all_lbword(self):
+        """ return a list wit all lbwords """
+        lst = []
+        for lb_word in self.sub_line1.words:
+            if lb_word.word != " ":
+                lst.append(lb_word)
+        for lb_word in self.sub_line2.words:
+            if lb_word.word != " ":
+                lst.append(lb_word)
+        return lst
+
+    def init_say_mode(self):
+        """ init say mmode """
+        self.lst_words = []
+        self.lst_words = self.get_all_lbword()
+        for word in self.lst_words:
+            word.init_say_mode()
+
+    def get_words_text(self):
+        """ get the text for all lines """
+        text = ""
+        for word in self.lst_words:
+            text += word.get_word()
+        return text
+
+    def evaluate_said_word(self, lst_said_words=[], debug=False):
+        """ evaluate all said words """
+        for said_word in lst_said_words:
+            if self.lst_words == []:
+                return True
+            for index in range(len(self.lst_words)):
+                e_word = re.sub('[\.\-\_\,]', '', self.lst_words[index].word)
+                # Hirvin aqui poner lower word
+                if said_word == e_word.lower():
+                    self.lst_words[index].setStyleSheet(CSS_CORRECT_SAY_COLOR)
+                    self.lst_words.pop(index)
+                    if debug is True:
+                        print "%s == %s : %s" % (said_word, e_word, "True")
+                        print "lst word"
+                        self.print_lst_word()
+                    break
+                else:
+                    if debug is True:
+                        print "%s == %s : %s" % (said_word, e_word, "False")
+        if self.lst_words == []:
+            return True
+
+        # all words complete
+        return False
+
+    def evaluate_diff(self, diff=None, debug=False):
+        """ evaluate the said text """
+        if diff is None:
+            return False
+
+        lst_said_words = []
+        # get said words
+        for value, txt in diff:
+            if value == 0:
+                if debug is True:
+                    print "evaluating: %s" % (txt)
+                for word in txt.split(" "):
+                    if (word != " ") and (word != ''):
+                        lst_said_words.append(word)
+        if debug is True:
+            print "said words"
+            print lst_said_words
+        return self.evaluate_said_word(lst_said_words, debug)
 
 
 class SubtitleLayout(QHBoxLayout):
@@ -333,6 +473,18 @@ class SubtitleLayout(QHBoxLayout):
         #     self.next_button.clicked.connect(self.next_clicked)
         # self.prev_button.clicked.connect(self.prev_clicked)
 
+    def get_words_text(self):
+        """ get the text for all lines """
+        return self.v_sub_layout.get_words_text()
+
+    def get_all_lbword(self):
+        """ get all lbwords """
+        return self.v_sub_layout.get_all_lbword()
+
+    def say_something(self):
+        """ say something action """
+        self.prev_button.say_something()
+
     def disable_next_button(self):
         """ deshabilita el next button """
         self.next_button.disable_button()
@@ -341,13 +493,27 @@ class SubtitleLayout(QHBoxLayout):
         """ habilita el button """
         self.next_button.enable_button()
 
+    def enable_prev_button(self):
+        """ habilitando prev button """
+        print "enable prev button 2"
+        self.prev_button.enable_prev_button()
+
     def repeat_next_button(self):
         """ repite el button """
         self.next_button.repeat_button()
 
+    def init_say_mode(self):
+        """ init say mode """
+        self.v_sub_layout.init_say_mode()
+        self.prev_button.say_button()
+
     def get_state_next_button(self):
         """ retorna el valor de state """
         return self.next_button.get_state()
+
+    def get_state_prev_button(self):
+        """ retorna el vlaor del state """
+        return self.prev_button.get_state()
 
     def init_sub_layout(self, frame_buffer, debug_mode=False):
         """ carga las configuraciones iniciales del sub layout """
@@ -356,11 +522,11 @@ class SubtitleLayout(QHBoxLayout):
         # mejor afuera
         self.frame_buffer = frame_buffer
 
-        # hirvin cambiar por nueva implementacion
+        # hirvin cambiar por nueva implementacion ************************************************
         self.v_sub_layout.set_sub_line1(self.frame_buffer, self.debug_mode)
         self.v_sub_layout.set_sub_line2(self.frame_buffer, self.debug_mode)
+        
         self.sub_slider.set_range(0, 100 ) # cambiar esta por el numero maximo de frame ###########################
-
         self.sub_slider.set_value(2)
 
     def init_box_layout(self, parent):
@@ -413,6 +579,10 @@ class SubtitleLayout(QHBoxLayout):
         """ acompleta las palabara de cada juego """
         self.is_complete = self.v_sub_layout.is_word_complete(key)
         return self.is_complete
+
+    def evaluate_diff(self, diff):
+        """ evaluate the said text """
+        return self.v_sub_layout.evaluate_diff(diff)
 
     def exit(self):
         """ exit """
