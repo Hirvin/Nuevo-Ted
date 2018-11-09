@@ -52,7 +52,7 @@ class SayLayout(QHBoxLayout):
 
     def set_you_said(self, text=""):
         """ set you said """
-        self.set_tag("  You haev said:")
+        self.set_tag("  You have said:")
         self.set_label(text)
 
     def say_something(self):
@@ -110,7 +110,6 @@ class MainWindow(QMainWindow):
         # anadir la parte de subtitulos
         self.sub_lay = SubtitleLayout()
         self.sub_lay.init_box_layout(layout)
-        # layout.addWidget(self.you_said_label)
         layout.addLayout(self.mi_label)
 
         # Set widget to contain window contents
@@ -144,7 +143,7 @@ class MainWindow(QMainWindow):
             print "necesito bucar"
             for frame in self.frame_buffer.root[1:]:
                 print frame.attrib["speech_is_complete"]
-                if frame.attrib["speech_is_complete"] == "false":
+                if frame.attrib["speech_is_complete"] == "False":
                     break
                 else:
                     print "iterando"
@@ -155,7 +154,7 @@ class MainWindow(QMainWindow):
         self.sub_lay.repeat_next_button()
         self.video_player.init_configuration(video_path=PATH_VIDEO, frame_buffer=self.frame_buffer, offset=11600)
         if self.frame_buffer.get_is_text_complete_frame() is True:
-            self.sub_lay.init_say_mode()
+            self.sub_lay.init_voice_mode()
 
     def next_global_clicked(self):
         """ reproduce el siguiente frame """
@@ -183,31 +182,42 @@ class MainWindow(QMainWindow):
         """ procesamiento de la voz """
         self.mi_label.clean()
         os.system("clear")
-        text = self.sub_lay.get_words_text()
+        text = self.sub_lay.get_words_text_voice()
+        print text
         self.mi_label.say_something()
         audio = get_audio()
         self.mi_label.processing()
         diff, you_said = get_differences(audio=audio, sub_text=text)
+        # print diff
 
-        if self.sub_lay.evaluate_diff(diff) is True:
+        if self.sub_lay.process_voice_diff(diff) is True:
             self.sub_lay.enable_next_button()
             self.sub_lay.enable_prev_button()
-            self.frame_buffer.set_is_speech_complete_frame("true")
+            self.frame_buffer.set_is_speech_complete_frame("True")
         self.mi_label.set_you_said(you_said)
 
     def exitCall(self):
         """ cierra la apliccaion """
+        print "saving --------------------"
+        self.frame_buffer.save()
         sys.exit(app.exec_())
+
+    def closeEvent(self, event):
+        print "close event perfomed"
+        self.frame_buffer.save()
+        event.accept()
 
     def keyPressEvent(self, event):
         """ key press event """
         if type(event) == QtGui.QKeyEvent:
             key = event.key()
             if self.sub_lay.is_character(key):
-                if self.sub_lay.is_word_complete(key) is True:
-                    self.frame_buffer.set_is_text_complete_frame("true")
-                    self.frame_buffer.save()
-                    self.sub_lay.init_say_mode()
+                if self.sub_lay.is_spell_complete(key) is True:
+                    print "esto es complete"
+                    # self.frame_buffer.set_is_text_complete_frame("true")
+                    # self.frame_buffer.save()
+                    # aqui no se esta haciendo nada
+                    self.sub_lay.init_voice_mode()
 
 
 if __name__ == '__main__':
