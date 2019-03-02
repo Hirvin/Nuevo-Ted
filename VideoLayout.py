@@ -9,7 +9,9 @@ from PyQt5.QtGui import QIcon
 import sys
 import time
 from GlobalConstant import TIMER_VIDEO
-from XmlHandler import HandlerXml
+# from XmlHandler import HandlerXml
+from SubtitleJson import DataFrame
+
 
 PATH_VIDEO = "/home/hirvin/Documentos/Hirvin/Proyectos/Ted_Test/NuevoTed/" \
              "video.mp4"
@@ -98,7 +100,7 @@ class VideoPlayer(QVBoxLayout):
         if self.media_player.state() == QMediaPlayer.PlayingState:
             self.media_player.pause()
 
-    def init_configuration(self, video_path=None, frame_buffer=None, offset=0):
+    def init_configuration(self, video_path=None, frame=None, offset=0):
         """ init configuration of video """
         self.offset = offset
         self.set_video_path(video_path)
@@ -106,10 +108,11 @@ class VideoPlayer(QVBoxLayout):
         # timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.timeout)  # timeout signal
-        if frame_buffer is not None:
-            self.frame_buffer = frame_buffer
-            end_time = int(self.frame_buffer.get_end_time())
-            init_time = int(self.frame_buffer.get_init_time())
+        if frame is not None:
+            # end_time = int(self.frame_buffer.get_end_time())
+            # init_time = int(self.frame_buffer.get_init_time())
+            init_time = frame["start_time"]
+            end_time = frame["end_time"]
             self.play(init_time=init_time, end_time=end_time)
 
     def timeout(self):
@@ -130,24 +133,33 @@ class VideoPlayer(QVBoxLayout):
             if position >= self.end_time:
                 self.player_status = PLAYER_STOP
 
-    def next_clicked(self):
+    def next_clicked(self, frame=None):
         """ next clicked action """
         # init_time = int(self.frame_buffer.get_init_time())
-        end_time = int(self.frame_buffer.get_end_time())
+        if frame is None:
+            return False
+        # end_time = int(self.frame_buffer.get_end_time())
+        end_time = frame["end_time"]
         self.play(init_time=None, end_time=end_time)
+        return True
         # self.print_position()
 
-    def prev_clicked(self):
+    def prev_clicked(self, frame=None):
         """ prev clicked action """
-        init_time = int(self.frame_buffer.get_init_time())
-        end_time = int(self.frame_buffer.get_end_time())
+        # init_time = int(self.frame_buffer.get_init_time())
+        # end_time = int(self.frame_buffer.get_end_time())
+        if frame is None:
+            return False
+        init_time = frame["start_time"]
+        end_time = frame["end_time"]
         self.play(init_time=init_time, end_time=end_time)
+        return True
         # self.print_position()
 
-    def repeat(self, init_time=None, end_time=None):
+    def repeat(self, frame=None):
         """ repeat frame """
-        self.init_time = int(self.frame_buffer.get_init_time()) + self.offset
-        self.end_time = int(self.frame_buffer.get_end_time()) + self.offset
+        self.init_time = frame["start_time"] + self.offset
+        self.end_time = frame["end_time"] + self.offset
         if(self.media_player.state() == QMediaPlayer.StoppedState) or \
                 (self.media_player.state() == QMediaPlayer.PausedState):
             self.media_player.setPosition(self.init_time)
@@ -177,7 +189,8 @@ class VideoWindow(QMainWindow):
         self.video_player.init_box_layout(layout)
 
         # adicional elements
-        self.frame_buffer = HandlerXml(SRT_FILE)
+        # self.frame_buffer = HandlerXml(SRT_FILE)
+        self.data_frame = DataFrame("test_json.txt")
 
 
         # este es solo contenido de pruebas no copiar
@@ -196,19 +209,23 @@ class VideoWindow(QMainWindow):
 
     def next_clicked(self):
         """ reprodce video y ande 10 segundos al frame """
-        self.frame_buffer.next_frame()
-        self.video_player.next_clicked()
+        # self.frame_buffer.next_frame()
+        self.video_player.next_clicked(frame=self.data_frame.get_next())
 
     def prev_clicked(self):
         """ reproduce el video y atrasa 20 segundos """
-        self.frame_buffer.prev_frame()
-        self.video_player.prev_clicked()
+        # self.frame_buffer.prev_frame()
+        self.video_player.prev_clicked(frame=self.data_frame.get_prev())
 
     def init_configuration(self):
         """ inicializa todas las configuraciones iniciales """
         # inicializacion de subtitle layout
         # inicializacion de video latoyut
-        self.video_player.init_configuration(video_path=PATH_VIDEO, frame_buffer=self.frame_buffer, offset=11600)
+        frame = self.data_frame.get_init()
+        # 11600
+        header = self.data_frame.get_header()
+        offset = header["offset"]
+        self.video_player.init_configuration(video_path=PATH_VIDEO, frame=frame, offset=offset)
 
     def exitCall(self):
         """ cierra la apliccaion """

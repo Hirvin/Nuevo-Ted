@@ -9,7 +9,8 @@ from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel, QPushButton, QSi
 from PyQt5.QtWidgets import QMainWindow,QWidget, QPushButton, QAction, QSlider, QDesktopWidget
 from SubtitleLayout import SubtitleLayout
 from VideoLayout import VideoPlayer
-from XmlHandler import HandlerXml
+# from XmlHandler import HandlerXml
+from SubtitleJson import DataFrame
 from speech import get_audio, get_differences
 import os
 from time import sleep
@@ -19,7 +20,7 @@ from time import sleep
 # constantes del programa
 PATH_VIDEO = "/home/hirvin/Documentos/Hirvin/Proyectos/Ted_Test/NuevoTed/" \
     "video.mp4"
-SRT_FILE = "test.xml"
+SRT_FILE = "test_json.txt"
 
 
 ENABLE_BUTTON = 0
@@ -116,7 +117,8 @@ class MainWindow(QMainWindow):
         wid.setLayout(layout)
 
         # inicializacion
-        self.frame_buffer = HandlerXml(SRT_FILE)
+        # self.frame_buffer = HandlerXml(SRT_FILE)
+        self.data_frame = DataFrame(SRT_FILE)
         self.init_configuration()
 
         # conectando senales
@@ -139,61 +141,65 @@ class MainWindow(QMainWindow):
 
     def init_configuration(self):
         """ inicializa todas las configuraciones iniciales """
-        if self.frame_buffer.get_is_speech_complete_frame() is True:
-            print "necesito bucar"
-            for frame in self.frame_buffer.root[1:]:
-                print frame.attrib["speech_is_complete"]
-                if frame.attrib["speech_is_complete"] == "False":
-                    break
-                else:
-                    print "iterando"
-                    self.frame_buffer.next_frame()
+        frame = self.data_frame.get_init()
+        header = self.data_frame.get_header()
+        n_frames = self.data_frame.get_nframes()
+        offset = header["offset"]
+        n_completed = self.data_frame.n_completed_frames()
 
         # hirvin modificar init_sub_layout 
-        self.sub_lay.init_sub_layout(self.frame_buffer, debug_mode=False)
+        self.sub_lay.init_sub_layout(frame=frame, n_frames=n_frames, n_completed=n_completed, debug_mode=False)
         self.sub_lay.repeat_next_button()
-        self.video_player.init_configuration(video_path=PATH_VIDEO, frame_buffer=self.frame_buffer, offset=11600)
-        if self.frame_buffer.get_is_text_complete_frame() is True:
+        self.video_player.init_configuration(video_path=PATH_VIDEO, frame=frame, offset=offset)
+        # temporal
+        if frame["is_text_completed"] is True:
             self.sub_lay.init_voice_mode()
 
     def next_global_clicked(self):
         """ reproduce el siguiente frame """
         if self.sub_lay.get_state_next_button() == REAPEAT_BUTTON:
-            self.video_player.repeat()
+            frame = self.data_frame.get_frame()
+            self.video_player.repeat(frame=frame)
         else:
-            self.frame_buffer.save()
-            self.frame_buffer.next_frame()
-            self.sub_lay.next_clicked()
+            # self.frame_buffer.save()
+            # self.frame_buffer.next_frame()
+            self.data_frame.save()
+            frame = self.data_frame.get_next()
+
+            self.sub_lay.next_clicked(frame=frame)
+            self.video_player.next_clicked(frame=frame)
             self.sub_lay.repeat_next_button()
-            self.video_player.next_clicked()
             self.you_said_label.setText(" ")
 
     def prev_global_clicked(self):
         """ reproduce el frame anterior """
         if self.sub_lay.get_state_prev_button() == PREV_BUTTON:
-            self.frame_buffer.prev_frame()
-            self.sub_lay.prev_clicked()
+            # self.frame_buffer.prev_frame()
+            frame = self.data_frame.get_prev()
+            self.sub_lay.prev_clicked(frame=frame)
+            self.video_player.prev_clicked(frame=frame)
             self.sub_lay.enable_next_button()
-            self.video_player.prev_clicked()
         elif self.sub_lay.get_state_prev_button() == SAY_BUTTON:
             self.process_voice()
+            
 
     def process_voice(self):
         """ procesamiento de la voz """
         self.mi_label.clean()
         os.system("clear")
-        text = self.sub_lay.get_words_text_voice()
+        text = self.data_frame.get_text_words()
         print text
         self.mi_label.say_something()
         audio = get_audio()
         self.mi_label.processing()
         diff, you_said = get_differences(audio=audio, sub_text=text)
-        # print diff
+        # you_said = "hola"
 
         if self.sub_lay.process_voice_diff(diff) is True:
             self.sub_lay.enable_next_button()
             self.sub_lay.enable_prev_button()
-            self.frame_buffer.set_is_speech_complete_frame("True")
+            frame = self.data_frame.get_frame()
+            frame["is_speech_completed"] = True
         self.mi_label.set_you_said(you_said)
 
     def exitCall(self):
@@ -204,7 +210,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         print "close event perfomed"
-        self.frame_buffer.save()
+        self.data_frame.save()
         event.accept()
 
     def keyPressEvent(self, event):
@@ -218,6 +224,10 @@ class MainWindow(QMainWindow):
                     # self.frame_buffer.save()
                     # aqui no se esta haciendo nada
                     self.sub_lay.init_voice_mode()
+            # save completed frames
+            if self.data_frame.is_current_frame_text_completed() is True:
+                self.data_frame.update_completed_frames()
+                self.data_frame.save()
 
 
 if __name__ == '__main__':

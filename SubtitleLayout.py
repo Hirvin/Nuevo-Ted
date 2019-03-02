@@ -10,7 +10,8 @@ from Subtitle import Subtitle2
 from GlobalConstant import NUM_WORD_BY_SUB
 import re
 from PyDictionary import PyDictionary
-from XmlHandler import HandlerXml
+# from XmlHandler import HandlerXml
+from SubtitleJson import DataFrame
 
 # see QColor(0, 200, 0)
 
@@ -134,35 +135,41 @@ class LbWord2(QLabel):
     def __init__(self, parent=None):
         super(LbWord2, self).__init__(parent)
         self.setText(" ")
-        self.valid_word = True
-        self.word = " "
+        # self.valid_word = True
+        self.word_frame = None
         # self.show_word = ""
         self.setStyleSheet(CSS_BASE_COLOR_NO_HOVER)
         self.mode = SPELL_MODE
-        self.cnt_word = 0
+        # self.cnt_word = 0
         self.lst_chr = []
-        self.is_spell_completed = False
-        self.is_voice_completed = False
-        self.word_xml = None
+        # self.is_spell_completed = False
+        # self.is_voice_completed = False
+        # self.word_xml = None
         self.dictionary = PyDictionary()
 
-    def set_word(self, word_xml):
+    def set_word(self, word_frame=None):
         """ set word"""
         self.clean()
-        word = word_xml[0].text
-        self.word_xml = word_xml
 
-        if word == "None_field":
-            self.valid_word = False
-            return False
+        # a clean word
+        if word_frame is None:
+            return True
+        #word = word_xml[0].text
+        #self.word_xml = word_xml
+        self.word_frame = word_frame
 
-        self.word = word
+        # if word == "None_field":
+        #     self.valid_word = False
+        #     return False
 
-        if word_xml.attrib["is_completed"] == 'True':
-            self.is_spell_completed = True
-            self.cnt_word = int(word_xml.attrib["cnt_word"])
+        # self.word = word
+
+        if self.word_frame["is_text_completed"] is True:
+            # self.is_spell_completed = True
+            # self.cnt_word = int(word_xml.attrib["cnt_word"])
             self.evaluate_error()
         else:
+            word = self.word_frame["word"]
             self.lst_chr = list(re.sub(r'[\W]', '', word))
             self.setText(self.replace_word(word))
             self.setStyleSheet(CSS_BASE_COLOR)
@@ -180,13 +187,14 @@ class LbWord2(QLabel):
 
     def evaluate_error(self):
         """ evalua los errores y los clasifica """
-        if self.cnt_word < 2:
+        n_text = self.word_frame["n_text"]
+        if n_text < 2:
             self.setStyleSheet(CSS_CORRECT_COLOR)
-        elif self.cnt_word < 4:
+        elif n_text < 4:
             self.setStyleSheet(CSS_WARNING_COLOR)
-        elif self.cnt_word >= 4:
+        elif n_text >= 4:
             self.setStyleSheet(CSS_ERROR_COLOR)
-        self.setText(self.replace_word(self.word))
+        self.setText(self.replace_word(self.word_frame["word"]))
 
     def evaluate_key(self, key=None, debug=False):
         """ evaluate key in word """
@@ -197,18 +205,18 @@ class LbWord2(QLabel):
         if self.lst_chr[0].upper() == chr(key):
             self.lst_chr.pop(0)
         else:
-            self.cnt_word += 1
+            self.word_frame["n_text"] += 1
 
         if debug is True:
             show_word = self.replace_word(self.word)
-            print "word: %s cnt_word: %d left_word: %s show_word: %s" % (self.word, self.cnt_word, str(self.lst_chr), show_word)
+            print "word: %s cnt_word: %d left_word: %s show_word: %s" % (self.word, self.word_frame["n_text"], str(self.lst_chr), show_word)
 
-        if (self.lst_chr == []) or (self.cnt_word >= 4):
+        if (self.lst_chr == []) or (self.word_frame["n_text"] >= 4):
             self.lst_chr = []
             is_completed = True
-            self.word_xml.attrib["is_completed"] = "True"
-            self.is_spell_completed = True
-            self.word_xml.attrib["cnt_word"] = str(self.cnt_word)
+            # self.word_xml.attrib["is_completed"] = "True"
+            self.word_frame["is_text_completed"] = True
+            # self.word_xml.attrib["cnt_word"] = str(self.cnt_word)
 
         self.evaluate_error()
 
@@ -218,15 +226,15 @@ class LbWord2(QLabel):
         """ init say mode """
         self.setStyleSheet(CSS_BASE_SAY_COLOR)
         self.mode = VOICE_MODE
-        if self.word_xml.attrib["is_voice_completed"] == 'True':
+        if self.word_frame["is_speech_completed"]:
             self.setStyleSheet(CSS_CORRECT_SAY_COLOR)
-            self.is_voice_completed = True
+            # self.is_voice_completed = True
 
     def set_voice_completed(self):
         """set voice completed """
         self.setStyleSheet(CSS_CORRECT_SAY_COLOR)
-        self.word_xml.attrib["is_voice_completed"] = "True"
-        self.is_voice_completed = True
+        self.word_frame["is_speech_completed"] = True
+        # self.is_voice_completed = True
 
     def __str__(self):
         """ __str__ """
@@ -234,8 +242,8 @@ class LbWord2(QLabel):
 
     def mousePressEvent(self, event):
         """ ejecuta accion al presional el label """
-        if self.valid_word is False:
-            if self.mode == SPELL_MODE and self.is_spell_completed:
+        if self.word_frame is not None:
+            if self.mode == SPELL_MODE and self.word_frame["is_text_completed"]:
                 word = re.sub(REPLACE_WORD_TO_DICTIONARY, "", self.word)
                 text = str(self.dictionary.meaning(word))
                 print text
@@ -243,16 +251,16 @@ class LbWord2(QLabel):
     def clean(self):
         """ clean """
         self.setText(" ")
-        self.valid_word = True
-        self.word = " "
+        # self.valid_word = True
+        self.word_frame = None
         self.setStyleSheet(CSS_BASE_COLOR_NO_HOVER)
         self.mode = SPELL_MODE
         # self.show_word = ""
-        self.cnt_word = 0
+        # self.cnt_word = 0
         self.lst_chr = []
-        self.is_spell_completed = False
-        self.is_voice_completed = False
-        self.word_xml = None
+        # self.is_spell_completed = False
+        # self.is_voice_completed = False
+        # self.word_xml = None
 
 
 class WordArray(object):
@@ -276,19 +284,21 @@ class WordArray(object):
 
         self.clean()
 
-        line1 = frame.get_line(line_number=0)
-        line2 = frame.get_line(line_number=1)
-        cnt = 0
+        # line1 = frame.get_line(line_number=0)
+        # line2 = frame.get_line(line_number=1)
+        # cnt = 0
 
-        # set line 1
-        for word_field in line1:
-            self.lst_words[cnt].set_word(word_field)
-            cnt += 1
+        # # set line 1
+        # for word_field in line1:
+        #     self.lst_words[cnt].set_word(word_field)
+        #     cnt += 1
 
-        # set line 2
-        for word_field in line2:
-            self.lst_words[cnt].set_word(word_field)
-            cnt += 1
+        # # set line 2
+        # for word_field in line2:
+        #     self.lst_words[cnt].set_word(word_field)
+        #     cnt += 1
+        for index, word in enumerate(self.frame["words"]):
+            self.lst_words[index].set_word(word)
 
         self.init_internal_lst()
 
@@ -297,8 +307,8 @@ class WordArray(object):
     def init_internal_lst(self):
         """ initializate lst_spell and lst_voice """
         for word in self.lst_words:
-            if word.valid_word is True:
-                if word.is_spell_completed is False:
+            if word.word_frame is not None:
+                if word.word_frame["is_text_completed"] is False:
                     self.lst_spell.append(word)
         return True
 
@@ -310,7 +320,7 @@ class WordArray(object):
         if self.is_spell_complete is True:
             return True
 
-        if self.frame.get_is_text_complete_frame() is True:
+        if self.frame["is_text_completed"] is True:
             self.is_spell_complete = True
             return True
 
@@ -319,8 +329,8 @@ class WordArray(object):
 
         if self.lst_spell == []:
             self.is_spell_complete = True
-            self.frame.set_is_text_complete_frame("True")
-            self.frame.save()
+            self.frame["is_text_completed"] = True
+            # self.frame.save()
             return True
 
         return False
@@ -332,7 +342,7 @@ class WordArray(object):
             return False
 
         for word in self.lst_voice:
-            e_word = re.sub(r"[^\w\']", '', word.word).lower()
+            e_word = re.sub(r"[^\w\']", '', word.word_frame["word"]).lower()
 
             if e_word == word_said:
                 is_match = True
@@ -371,9 +381,9 @@ class WordArray(object):
     def init_voice_mode(self):
         """ init say mode """
         for word in self.lst_words:
-            if word.valid_word:
+            if word.word_frame is not None:
                 word.init_voice_mode()
-                if word.is_voice_completed is False:
+                if word.word_frame["is_speech_completed"] is False:
                     self.lst_voice.append(word)
 
     def __str__(self):
@@ -548,9 +558,9 @@ class SubtitleLayout(QHBoxLayout):
         # subitle slide initialization
         self.sub_slider = SubSlider()
 
-    def get_words_text_voice(self):
-        """ get the text for all lines """
-        return ''.join(e.word + " " for e in self.arr_words.lst_voice)
+    # def get_words_text_voice(self):
+    #      get the text for all lines 
+    #     return ''.join(e.word + " " for e in self.arr_words.lst_voice)
 
     def say_something(self):
         """ say something action """
@@ -587,36 +597,48 @@ class SubtitleLayout(QHBoxLayout):
         """ retorna el vlaor del state """
         return self.prev_button.get_state()
 
-    def init_sub_layout(self, frame_buffer, debug_mode=False):
+    def init_sub_layout(self, frame=None, n_frames=0, n_completed=0, debug_mode=False):
         """ carga las configuraciones iniciales del sub layout """
+        if frame is None:
+            return False
         self.debug_mode = debug_mode
 
-        self.frame_buffer = frame_buffer
-        self.set_frame_in_words(frame=self.frame_buffer)
+        # self.data_frame = data_frame
+        self.set_frame_in_words(frame=frame)
 
         # falta improvisar el slider
-        self.sub_slider.set_range(0, 100 ) # cambiar esta por el numero maximo de frame ###########################
-        self.sub_slider.set_value(2)
+        self.sub_slider.set_range(0, n_frames)
+        self.sub_slider.set_value(n_completed)
+
+        return True
 
     def set_frame_in_words(self, frame=None):
         """ set the word into the frame """
         if frame is None:
             return False
         self.arr_words.set_frame(frame)
+        return True
 
     def init_box_layout(self, parent):
         """ se anade asi mismo a la estrutura principal """
         parent.addWidget(self.sub_slider)
         parent.addLayout(self)
 
-    def next_clicked(self):
+    def next_clicked(self, frame=None):
         """ handler para cuando se presina next button """
-        self.set_frame_in_words(frame=self.frame_buffer)
+        if frame is None:
+            return None
+        self.set_frame_in_words(frame=frame)
+        self.sub_slider.set_value(1 + self.sub_slider.value())
+        return True
 
-    def prev_clicked(self):
+    def prev_clicked(self, frame=None):
         """ handler prev button """
-        self.set_frame_in_words(frame=self.frame_buffer)
-
+        if frame is None:
+            return None
+        self.set_frame_in_words(frame=frame)
+        self.sub_slider.set_value(self.sub_slider.value() - 1)
+        return True
 
     def is_letter(self, key):
         """ retorna True si es una letra """
@@ -667,7 +689,8 @@ class VideoWindow(QMainWindow):
         wid.setLayout(layout)
 
         # adicional elements
-        self.frame_buffer = HandlerXml(SRT_FILE)
+        # self.frame_buffer = HandlerXml(SRT_FILE)
+        self.data_frame = DataFrame("test_json.txt")
 
         # inicializacion
         self.init_configuration()
@@ -679,7 +702,9 @@ class VideoWindow(QMainWindow):
     def init_configuration(self):
         """ inicializa todas las configuraciones iniciales """
         # self.sub_lay.open_srt(SRT_FILE)
-        self.sub_lay.init_sub_layout(self.frame_buffer, debug_mode=True)
+        frame = self.data_frame.get_init()
+        n_frames = self.data_frame.get_nframes()
+        self.sub_lay.init_sub_layout(frame=frame, n_frames=n_frames, debug_mode=True)
         # self.sub_lay.repeat_next_button() # cambiar esta Hirvin
 
     # esta funcion es necesaria incluirla en la ventan principal
@@ -690,6 +715,9 @@ class VideoWindow(QMainWindow):
             if self.sub_lay.is_character(key):
                 if self.sub_lay.is_spell_complete(key) is True:
                     self.sub_lay.enable_next_button()
+            # save competed frames
+            if self.data_frame.is_current_frame_text_completed() is True:
+                self.data_frame.save()
 
     def exitCall(self):
         """ cierra la apliccaion """
@@ -697,14 +725,14 @@ class VideoWindow(QMainWindow):
 
     def next_global_clicked(self):
         """ next global clicked """
-        self.frame_buffer.save()
-        self.frame_buffer.next_frame()
-        self.sub_lay.next_clicked()
+        self.data_frame.save()
+        # self.frame_buffer.next_frame()
+        self.sub_lay.next_clicked(frame=self.data_frame.get_next())
 
     def prev_global_clicked(self):
         """ prev global clicked """
-        self.frame_buffer.prev_frame()
-        self.sub_lay.prev_clicked()
+        # self.frame_buffer.prev_frame()
+        self.sub_lay.prev_clicked(frame=self.data_frame.get_prev())
 
 
 if __name__ == '__main__':
